@@ -64,7 +64,7 @@ export const EventCard: React.FC<EventCardProps> = ({
   const fillPercent = Math.min(100, Math.round((event.registered_count / event.capacity) * 100));
 
   return (
-    <div className="group bg-white rounded-2xl border border-slate-200/90 hover:border-indigo-300 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col overflow-hidden relative">
+    <div className="group bg-white rounded-2xl border border-slate-200/90 hover:border-indigo-300 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col overflow-hidden relative cursor-pointer focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2">
       {/* Poster / Image Header */}
       <div className="relative h-44 w-full bg-slate-900 overflow-hidden shrink-0">
         <img
@@ -79,26 +79,28 @@ export const EventCard: React.FC<EventCardProps> = ({
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/20" />
 
         {/* Category & Status overlay */}
-        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 items-center">
+        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 items-center pointer-events-none">
           <CategoryBadge category={event.category} />
         </div>
 
         {/* Bookmark action */}
         <button
+          type="button"
           onClick={handleBookmark}
           disabled={saving}
-          className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-md transition-colors ${
+          className={`absolute top-3 right-3 z-20 p-2 rounded-full backdrop-blur-md transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 ${
             isSaved
               ? 'bg-indigo-600 text-white shadow-xs'
               : 'bg-white/80 hover:bg-white text-slate-700'
           }`}
           title={isSaved ? 'Remove Bookmark' : 'Save Event'}
+          aria-label={isSaved ? `Remove ${event.title} from saved bookmarks` : `Save ${event.title} to bookmarks`}
         >
           <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
         </button>
 
         {/* Transport & Format indicator pills at bottom of poster */}
-        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-white">
+        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-white pointer-events-none">
           <div className="flex items-center gap-1.5 bg-slate-900/80 backdrop-blur-md px-2 py-0.5 rounded-md border border-white/10 font-medium">
             <span className="capitalize">{event.format} Event</span>
             {event.has_transport && (
@@ -116,12 +118,17 @@ export const EventCard: React.FC<EventCardProps> = ({
       {/* Card Content */}
       <div className="p-5 flex-1 flex flex-col justify-between">
         <div>
-          <div className="text-xs font-medium text-indigo-700 mb-1 flex items-center gap-1 line-clamp-1">
+          <div className="text-xs font-medium text-indigo-700 mb-1 flex items-center gap-1 line-clamp-1 pointer-events-none">
             <span>{event.college_name}</span>
           </div>
 
           <h3 className="font-semibold text-slate-900 text-base leading-snug line-clamp-2 group-hover:text-indigo-600 transition-colors">
-            {event.title}
+            <Link
+              to={`/events/${event.id}`}
+              className="focus:outline-hidden focus-visible:underline after:absolute after:inset-0 after:z-10 rounded-xs"
+            >
+              {event.title}
+            </Link>
           </h3>
 
           <p className="mt-2 text-xs text-slate-500 line-clamp-2 leading-relaxed">
@@ -173,11 +180,14 @@ export const EventCard: React.FC<EventCardProps> = ({
 
         {/* Footer Card Actions */}
         <div className="mt-4 pt-3 flex items-center justify-between">
-          <StatusBadge status={event.status} />
+          <div className="pointer-events-none">
+            <StatusBadge status={event.status} />
+          </div>
 
           <Link
             to={`/events/${event.id}`}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors py-1 px-2.5 rounded-lg hover:bg-indigo-50"
+            className="relative z-20 inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors py-1 px-2.5 rounded-lg hover:bg-indigo-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-600"
+            aria-label={`View details for ${event.title}`}
           >
             <span>Details</span>
             <ExternalLink className="w-3.5 h-3.5" />

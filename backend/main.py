@@ -448,22 +448,31 @@ def register_for_event(
         )
 
     now = datetime.now(timezone.utc).isoformat()
-    reg_id = f"reg-{uuid.uuid4().hex[:8]}"
     checkin_token = f"EVH-CHK-{uuid.uuid4().hex[:6].upper()}"
-
     payment_status = "free" if event["fee"] == 0 else "paid" # simulated payment for demo
 
-    execute_db("""
-    INSERT INTO event_registrations (
-        id, event_id, student_id, student_name, student_email, student_college,
-        student_department, student_year, registration_status, attendance_status,
-        qr_checkin_token, payment_status, payment_amount, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        reg_id, event_id, current_user.id, current_user.display_name, current_user.email,
-        current_user.college_name, current_user.department, current_user.year,
-        "confirmed", "registered", checkin_token, payment_status, event["fee"], now, now
-    ))
+    if existing and existing["registration_status"] == "cancelled":
+        reg_id = existing["id"]
+        execute_db("""
+        UPDATE event_registrations
+        SET registration_status = 'confirmed', attendance_status = 'registered',
+            attended_at = NULL, qr_checkin_token = ?, payment_status = ?,
+            payment_amount = ?, updated_at = ?
+        WHERE id = ?
+        """, (checkin_token, payment_status, event["fee"], now, reg_id))
+    else:
+        reg_id = f"reg-{uuid.uuid4().hex[:8]}"
+        execute_db("""
+        INSERT INTO event_registrations (
+            id, event_id, student_id, student_name, student_email, student_college,
+            student_department, student_year, registration_status, attendance_status,
+            qr_checkin_token, payment_status, payment_amount, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            reg_id, event_id, current_user.id, current_user.display_name, current_user.email,
+            current_user.college_name, current_user.department, current_user.year,
+            "confirmed", "registered", checkin_token, payment_status, event["fee"], now, now
+        ))
 
     # Increment registered count
     execute_db(
@@ -510,16 +519,24 @@ def join_waitlist(event_id: str, current_user: UserProfile = Depends(get_current
     )
     next_pos = (max_pos["m"] or 0) + 1 if max_pos else 1
 
-    entry_id = f"wt-{uuid.uuid4().hex[:8]}"
     now = datetime.now(timezone.utc).isoformat()
 
-    execute_db("""
-    INSERT INTO waitlist_entries (id, event_id, student_id, student_name, student_email, queue_position, status, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        entry_id, event_id, current_user.id, current_user.display_name, current_user.email,
-        next_pos, "waiting", now, now
-    ))
+    if existing:
+        entry_id = existing["id"]
+        execute_db("""
+        UPDATE waitlist_entries
+        SET queue_position = ?, status = 'waiting', offer_expires_at = NULL, updated_at = ?
+        WHERE id = ?
+        """, (next_pos, now, entry_id))
+    else:
+        entry_id = f"wt-{uuid.uuid4().hex[:8]}"
+        execute_db("""
+        INSERT INTO waitlist_entries (id, event_id, student_id, student_name, student_email, queue_position, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            entry_id, event_id, current_user.id, current_user.display_name, current_user.email,
+            next_pos, "waiting", now, now
+        ))
 
     return {
         "success": True,
@@ -594,6 +611,134 @@ def cancel_registration(registration_id: str, current_user: UserProfile = Depend
         ))
 
     return {"message": "Registration cancelled successfully. Seat returned to pool."}
+
+@app.post("/api/waitlist/{waitlist_id}/accept")
+def accept_waitlist_offer(waitlist_id: str, current_user: UserProfile = Depends(get_current_user)):
+    entry = query_db("SELECT * FROM waitlist_entries WHERE id = ?", (waitlist_id,), one=True)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Waitlist entry not found")
+    if entry["student_id"] != current_user.id:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    if entry["status"] != "offered":
+        raise HTTPException(status_code=400, detail=f"Cannot accept offer with status '{entry['status']}'")
+
+    now_dt = datetime.now(timezone.utc)
+    now = now_dt.isoformat()
+
+    # Check offer expiry
+    if entry["offer_expires_at"]:
+        exp = parse_iso_datetime(entry["offer_expires_at"])
+        if exp and exp < now_dt.replace(tzinfo=None):
+            execute_db("UPDATE waitlist_entries SET status = 'expired', updated_at = ? WHERE id = ?", (now, waitlist_id))
+            # Promote next waiting student
+            next_waiting = query_db("""
+            SELECT * FROM waitlist_entries
+            WHERE event_id = ? AND status = 'waiting'
+            ORDER BY queue_position ASC LIMIT 1
+            """, (entry["event_id"],), one=True)
+            if next_waiting:
+                offer_expires = (now_dt + timedelta(hours=24)).isoformat()
+                execute_db(
+                    "UPDATE waitlist_entries SET status = 'offered', offer_expires_at = ?, updated_at = ? WHERE id = ?",
+                    (offer_expires, now, next_waiting["id"])
+                )
+            raise HTTPException(status_code=400, detail="Seat offer has expired and has been offered to the next waitlisted student.")
+
+    event = query_db("SELECT * FROM events WHERE id = ?", (entry["event_id"],), one=True)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    checkin_token = f"EVH-CHK-{uuid.uuid4().hex[:6].upper()}"
+    payment_status = "free" if event["fee"] == 0 else "paid"
+
+    existing_reg = query_db(
+        "SELECT id FROM event_registrations WHERE event_id = ? AND student_id = ?",
+        (entry["event_id"], current_user.id), one=True
+    )
+
+    if existing_reg:
+        reg_id = existing_reg["id"]
+        execute_db("""
+        UPDATE event_registrations
+        SET registration_status = 'confirmed', attendance_status = 'registered',
+            attended_at = NULL, qr_checkin_token = ?, payment_status = ?,
+            payment_amount = ?, updated_at = ?
+        WHERE id = ?
+        """, (checkin_token, payment_status, event["fee"], now, reg_id))
+    else:
+        reg_id = f"reg-{uuid.uuid4().hex[:8]}"
+        execute_db("""
+        INSERT INTO event_registrations (
+            id, event_id, student_id, student_name, student_email, student_college,
+            student_department, student_year, registration_status, attendance_status,
+            qr_checkin_token, payment_status, payment_amount, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            reg_id, entry["event_id"], current_user.id, current_user.display_name, current_user.email,
+            current_user.college_name, current_user.department, current_user.year,
+            "confirmed", "registered", checkin_token, payment_status, event["fee"], now, now
+        ))
+
+    execute_db("UPDATE waitlist_entries SET status = 'accepted', updated_at = ? WHERE id = ?", (now, waitlist_id))
+    execute_db("UPDATE events SET registered_count = registered_count + 1 WHERE id = ?", (entry["event_id"],))
+
+    execute_db("""
+    INSERT INTO notifications (id, recipient_id, title, message, type, event_id)
+    VALUES (?, ?, ?, ?, ?, ?)
+    """, (
+        f"notif-{uuid.uuid4().hex[:8]}", current_user.id,
+        "Seat Offer Accepted!",
+        f"Your registration for {event['title']} is now confirmed. Your check-in pass is ready.",
+        "registration", entry["event_id"]
+    ))
+
+    return {
+        "success": True,
+        "registration_id": reg_id,
+        "checkin_token": checkin_token,
+        "message": "Seat offer accepted and registration confirmed!"
+    }
+
+@app.post("/api/waitlist/{waitlist_id}/decline")
+def decline_waitlist_offer(waitlist_id: str, current_user: UserProfile = Depends(get_current_user)):
+    entry = query_db("SELECT * FROM waitlist_entries WHERE id = ?", (waitlist_id,), one=True)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Waitlist entry not found")
+    if entry["student_id"] != current_user.id:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    if entry["status"] != "offered":
+        raise HTTPException(status_code=400, detail=f"Cannot decline offer with status '{entry['status']}'")
+
+    now = datetime.now(timezone.utc).isoformat()
+    execute_db("UPDATE waitlist_entries SET status = 'declined', updated_at = ? WHERE id = ?", (now, waitlist_id))
+
+    # Promote next waiting student
+    next_waiting = query_db("""
+    SELECT * FROM waitlist_entries
+    WHERE event_id = ? AND status = 'waiting'
+    ORDER BY queue_position ASC LIMIT 1
+    """, (entry["event_id"],), one=True)
+
+    if next_waiting:
+        offer_expires = (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat()
+        execute_db(
+            "UPDATE waitlist_entries SET status = 'offered', offer_expires_at = ?, updated_at = ? WHERE id = ?",
+            (offer_expires, now, next_waiting["id"])
+        )
+        execute_db("""
+        INSERT INTO notifications (id, recipient_id, title, message, type, event_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """, (
+            f"notif-{uuid.uuid4().hex[:8]}", next_waiting["student_id"],
+            "Seat Offer Available!",
+            "A seat has opened up for your waitlisted event. Accept within 24 hours to secure your spot.",
+            "waitlist", entry["event_id"]
+        ))
+
+    return {
+        "success": True,
+        "message": "Seat offer declined. Offered to the next waitlisted student."
+    }
 
 # ==================== Saved Events Endpoints ====================
 @app.get("/api/saved-events")
@@ -789,6 +934,12 @@ def get_event_registrants(event_id: str, current_user: UserProfile = Depends(get
 
 @app.post("/api/attendance/checkin")
 def checkin_attendee(req: AttendanceCheckinRequest, current_user: UserProfile = Depends(get_current_user)):
+    if current_user.role not in ("organizer", "admin"):
+        raise HTTPException(
+            status_code=403,
+            detail="Only verified organizers or administrators can perform attendance check-ins."
+        )
+
     token = req.token_or_registration_id.strip()
     reg = query_db(
         "SELECT * FROM event_registrations WHERE qr_checkin_token = ? OR id = ?",
@@ -855,6 +1006,28 @@ def issue_certificate(req: CertificateIssueRequest, current_user: UserProfile = 
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
+    # Verify student attended the event
+    reg = query_db(
+        "SELECT * FROM event_registrations WHERE event_id = ? AND student_id = ? AND attendance_status = 'attended'",
+        (req.event_id, req.student_id), one=True
+    )
+    if not reg:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot issue certificate: student has not attended this event or attendance was not verified."
+        )
+
+    # Prevent duplicate active certificate for this event and student
+    existing_cert = query_db(
+        "SELECT id FROM certificates WHERE event_id = ? AND student_id = ? AND status = 'valid'",
+        (req.event_id, req.student_id), one=True
+    )
+    if existing_cert:
+        raise HTTPException(
+            status_code=400,
+            detail="A valid certificate has already been issued for this student for this event."
+        )
+
     # Generate unique verifiable certificate ID: EVH-YEAR-HEX
     year_str = datetime.now().year
     cert_id = f"EVH-{year_str}-{uuid.uuid4().hex[:6].upper()}"
@@ -888,6 +1061,37 @@ def issue_certificate(req: CertificateIssueRequest, current_user: UserProfile = 
 
     r = query_db("SELECT * FROM certificates WHERE certificate_id = ?", (cert_id,), one=True)
     return Certificate(**r)
+
+@app.post("/api/certificates/{certificate_id}/revoke")
+def revoke_certificate(certificate_id: str, reason: str = Query("Revoked by organizer"), current_user: UserProfile = Depends(get_current_user)):
+    if current_user.role not in ("organizer", "admin"):
+        raise HTTPException(status_code=403, detail="Only organizers can revoke certificates.")
+
+    cert = query_db(
+        "SELECT * FROM certificates WHERE certificate_id = ? OR id = ?",
+        (certificate_id, certificate_id), one=True
+    )
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+
+    execute_db("UPDATE certificates SET status = 'revoked' WHERE id = ?", (cert["id"],))
+
+    execute_db("""
+    INSERT INTO notifications (id, recipient_id, title, message, type, event_id)
+    VALUES (?, ?, ?, ?, ?, ?)
+    """, (
+        f"notif-{uuid.uuid4().hex[:8]}", cert["student_id"],
+        "Certificate Revoked",
+        f"Certificate {cert['certificate_id']} for {cert['event_title']} has been revoked. Reason: {reason}",
+        "certificate", cert["event_id"]
+    ))
+
+    return {
+        "success": True,
+        "certificate_id": cert["certificate_id"],
+        "status": "revoked",
+        "message": "Certificate successfully revoked."
+    }
 
 @app.get("/api/certificates/verify/{certificate_id}")
 def verify_certificate(certificate_id: str):

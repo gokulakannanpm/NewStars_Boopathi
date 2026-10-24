@@ -270,6 +270,16 @@ export const EventDetailPage: React.FC = () => {
                   <Users className="w-4 h-4" />
                   <span>Join Priority Waitlist</span>
                 </button>
+              ) : event.is_external && event.canonical_registration_link ? (
+                <a
+                  href={event.canonical_registration_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-xs transition-colors"
+                >
+                  <span>Register on Host Site</span>
+                  <ExternalLink className="w-4 h-4" />
+                </a>
               ) : (
                 <button
                   onClick={() => setRegModalOpen(true)}
@@ -280,6 +290,24 @@ export const EventDetailPage: React.FC = () => {
                 </button>
               )}
             </div>
+
+            {event.is_external && (
+              <div className="w-full mt-2 p-3 bg-amber-50 rounded-xl border border-amber-200/80 text-amber-900 text-xs flex items-center justify-between gap-3">
+                <span className="font-medium">
+                  Institutional External Event: Official registration is managed on the host institution's portal.
+                </span>
+                {event.canonical_registration_link && (
+                  <a
+                    href={event.canonical_registration_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-amber-950 underline shrink-0 inline-flex items-center gap-1"
+                  >
+                    Host Portal <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

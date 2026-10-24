@@ -5,7 +5,7 @@
   <br />
   Discover nearby hackathons, symposiums, workshops, conferences and student communities — all in one place.
   <br /><br />
-  <img src="ADD_YOUR_EVEHUB_BANNER_IMAGE_URL_HERE" alt="EveHub — Hyperlocal Campus Event Discovery" width="100%" />
+  <img src="assets/evehub-banner.png" alt="EveHub — Hyperlocal Campus Event Discovery" width="100%" />
 </p>
 
 <p align="center">
@@ -52,9 +52,9 @@ Its defining feature is an **interactive nearby-college map**. Students can expl
 EveHub also supports the journey beyond discovery: from checking schedule conflicts and registering for events to verified attendance and digital certificates.
 
 <p align="center">
-  <img src="ADD_YOUR_STUDENT_DASHBOARD_SCREENSHOT_URL_HERE" alt="EveHub student dashboard" width="100%" />
+  <img src="assets/evehub-student-dashboard.png" alt="EveHub student dashboard" width="100%" />
   <br />
-  <em>📸 Screenshot 1: Add the EveHub student dashboard here.</em>
+  <em>Interactive student command center: Personalized live event radar, registered symposiums, and institutional profile at Sri Sairam Engineering College.</em>
 </p>
 
 ---
@@ -84,15 +84,15 @@ The map is designed to support college-type filtering, including engineering ins
 - **A scalable foundation:** The same discovery experience can extend to more institutions and regions as the campus dataset grows.
 
 <p align="center">
-  <img src="ADD_YOUR_EXPLORE_MAP_SCREENSHOT_URL_HERE" alt="EveHub Explore Nearby interactive college map" width="100%" />
+  <img src="assets/evehub-explore-map.png" alt="EveHub Explore Nearby interactive college map" width="100%" />
   <br />
-  <em>📸 Screenshot 2: Add the interactive map with the radius selector and nearby-college sidebar.</em>
+  <em>EveHub Explore Nearby Map: Interactive Leaflet viewport centered at Sri Sairam Engineering College (West Tambaram) with a 30 km dynamic radius filter discovering 34 matching campuses.</em>
 </p>
 
 <p align="center">
-  <img src="ADD_YOUR_SELECTED_COLLEGE_EVENTS_SCREENSHOT_URL_HERE" alt="Events listed for a selected college in EveHub" width="100%" />
+  <img src="assets/evehub-college-events.png" alt="Events listed for a selected college in EveHub" width="100%" />
   <br />
-  <em>📸 Screenshot 3: Add the selected-college panel showing its ongoing and upcoming events.</em>
+  <em>Campus-level discovery panel: Selecting Sri Sairam Engineering College reveals its verified provenance link, campus address, exact distance (0.0 km), and upcoming symposium "Sai Leo Innovate '26".</em>
 </p>
 
 **Our vision:** A student should not have to know which college is hosting an event before discovering that the opportunity exists.
@@ -112,9 +112,9 @@ Students can maintain their academic timetable and check for overlaps before com
 The conflict engine compares event time intervals with recorded academic commitments, helping students make more informed participation decisions.
 
 <p align="center">
-  <img src="ADD_YOUR_TIMETABLE_CONFLICT_SCREENSHOT_URL_HERE" alt="EveHub timetable and event conflict warning" width="90%" />
+  <img src="assets/evehub-timetable-conflict.png" alt="EveHub timetable and event conflict warning" width="90%" />
   <br />
-  <em>📸 Screenshot 4: Add the timetable conflict detection interface.</em>
+  <em>Deterministic interval conflict guard: Proactively detects schedule overlap between the Shaastra AI Hackathon and academic commitments (Database Systems exam), preventing double-booking.</em>
 </p>
 
 ### 🎟️ Event Discovery and Registration
@@ -124,9 +124,9 @@ Explore events, inspect event details, review available registration information
 Discovery and registration are connected, so students can move from finding an opportunity to acting on it.
 
 <p align="center">
-  <img src="ADD_YOUR_EVENT_DETAILS_SCREENSHOT_URL_HERE" alt="EveHub event details and registration" width="90%" />
+  <img src="assets/evehub-event-details.png" alt="EveHub event details and registration" width="90%" />
   <br />
-  <em>📸 Screenshot 5: Add an event detail page with registration information.</em>
+  <em>Event discovery & registration interface: Comprehensive agenda, live capacity counter, logistics summary, shuttle schedule card, and integrated ticket tier selection for IIT Madras Shaastra 2026.</em>
 </p>
 
 ### 🚌 AI-Assisted Campus Transport Information
@@ -138,9 +138,9 @@ The transport assistant extracts information from the available document and can
 The goal is to make event logistics easier to understand without forcing students to manually search lengthy schedules.
 
 <p align="center">
-  <img src="ADD_YOUR_TRANSPORT_AI_SCREENSHOT_URL_HERE" alt="EveHub AI transport assistant answering questions from a route document" width="90%" />
+  <img src="assets/evehub-transport-ai.png" alt="EveHub AI transport assistant answering questions from a route document" width="90%" />
   <br />
-  <em>📸 Screenshot 6: Add the transport assistant showing an answer and its document reference.</em>
+  <em>AI transport assistant: Grounded document retrieval over official collegiate shuttle circulars, answering student route queries with precise source citations.</em>
 </p>
 
 ### 📷 QR-Based Attendance and Team Check-In
@@ -148,9 +148,9 @@ The goal is to make event logistics easier to understand without forcing student
 EveHub supports QR-based attendee check-in, manual fallback and team check-in workflows. These features help organizers record attendance and support downstream participation verification.
 
 <p align="center">
-  <img src="ADD_YOUR_ATTENDANCE_SCANNER_SCREENSHOT_URL_HERE" alt="EveHub QR attendance scanner" width="90%" />
+  <img src="assets/evehub-attendance.png" alt="EveHub QR attendance scanner" width="90%" />
   <br />
-  <em>📸 Screenshot 7: Add the organizer attendance-scanning interface.</em>
+  <em>On-venue check-in control: Live camera QR code scanner with cryptographic token verification, real-time participant roster, and manual fallbacks.</em>
 </p>
 
 ### 🏅 Digital Certificates and Verification
@@ -160,9 +160,9 @@ EveHub supports certificate templates, bulk certificate issuance, student certif
 The aim is to make participation credentials easier to issue, retrieve and verify after an event.
 
 <p align="center">
-  <img src="ADD_YOUR_CERTIFICATE_WALLET_SCREENSHOT_URL_HERE" alt="EveHub digital certificate wallet and verification" width="90%" />
+  <img src="assets/evehub-certificates.png" alt="EveHub digital certificate wallet and verification" width="90%" />
   <br />
-  <em>📸 Screenshot 8: Add the certificate wallet or certificate verification page.</em>
+  <em>Digital achievement wallet: Cryptographically verifiable credentials for attended events with unique verification hashes and instant download capabilities.</em>
 </p>
 
 ### 💬 Organizer–Student Communication
@@ -174,6 +174,16 @@ The broader vision is to reduce repeated questions by allowing organizers to sha
 ### ⏳ Waitlists and Seat Management
 
 EveHub supports registration-capacity handling and waitlist-related workflows, helping organizers manage demand when an event reaches its capacity.
+
+### 📊 Organizer Event Command Center
+
+Organizers manage the complete lifecycle of their events through a unified command center. From monitoring live registration volume and capacity thresholds to initiating on-venue QR scanning consoles and managing attendee status, EveHub equips hosts with full operational control.
+
+<p align="center">
+  <img src="assets/evehub-organizer-dashboard.png" alt="EveHub organizer event command center" width="90%" />
+  <br />
+  <em>Organizer operations cockpit: Real-time visibility into registrations, attendee rosters, check-in percentages, and multi-tier ticketing controls.</em>
+</p>
 
 ---
 

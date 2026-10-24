@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import {
   Search,
   Filter,
@@ -127,21 +127,31 @@ export const EventsDiscoveryPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Sort Dropdown */}
-        <div className="flex items-center gap-2 text-xs">
-          <ArrowUpDown className="w-4 h-4 text-slate-400 shrink-0" />
-          <span className="text-slate-500 font-medium">Sort by:</span>
-          <select
-            value={sort}
-            onChange={(e) => updateParam('sort', e.target.value)}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 outline-hidden focus:border-indigo-500 cursor-pointer shadow-2xs"
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            to="/explore"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-colors shadow-2xs flex items-center gap-1.5 shrink-0"
           >
-            <option value="upcoming">Upcoming Date</option>
-            <option value="deadline">Registration Deadline</option>
-            <option value="newest">Newest Added</option>
-            <option value="fee_asc">Fee: Free to Lowest</option>
-            <option value="fee_desc">Fee: Highest First</option>
-          </select>
+            <Compass className="w-4 h-4 text-white" />
+            <span>Explore on Map (30 km & 50 km)</span>
+          </Link>
+
+          {/* Sort Dropdown */}
+          <div className="flex items-center gap-2 text-xs">
+            <ArrowUpDown className="w-4 h-4 text-slate-400 shrink-0" />
+            <span className="text-slate-500 font-medium">Sort by:</span>
+            <select
+              value={sort}
+              onChange={(e) => updateParam('sort', e.target.value)}
+              className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 outline-hidden focus:border-indigo-500 cursor-pointer shadow-2xs"
+            >
+              <option value="upcoming">Upcoming Date</option>
+              <option value="deadline">Registration Deadline</option>
+              <option value="newest">Newest Added</option>
+              <option value="fee_asc">Fee: Free to Lowest</option>
+              <option value="fee_desc">Fee: Highest First</option>
+            </select>
+          </div>
         </div>
       </div>
 

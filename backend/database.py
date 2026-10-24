@@ -202,6 +202,9 @@ def init_db():
 
     # Safe column migrations for existing databases
     for table, col, col_type in [
+        ("colleges", "college_type", "TEXT DEFAULT 'Engineering'"),
+        ("colleges", "logo_url", "TEXT"),
+        ("colleges", "source_url", "TEXT"),
         ("events", "transport_pdf_url", "TEXT"),
         ("events", "completed_at", "TEXT"),
         ("event_registrations", "is_team", "INTEGER NOT NULL DEFAULT 0"),
@@ -215,19 +218,49 @@ def init_db():
         except Exception:
             pass
 
-    # Seed if colleges is empty
-    count = cur.execute("SELECT COUNT(*) FROM colleges").fetchone()[0]
-    if count == 0:
-        # Colleges
-        for clg in get_demo_colleges():
-            cur.execute("""
-            INSERT INTO colleges (id, name, short_name, district, state, latitude, longitude, verified, address, website)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                clg["id"], clg["name"], clg["short_name"], clg["district"], clg["state"],
-                clg["latitude"], clg["longitude"], clg["verified"], clg["address"], clg["website"]
-            ))
+    # Ensure all demo colleges with verified coordinates, college_type, and provenance source_url are present
+    for clg in get_demo_colleges():
+        cur.execute("""
+        INSERT OR REPLACE INTO colleges (id, name, short_name, district, state, college_type, latitude, longitude, verified, address, website, source_url)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            clg["id"], clg["name"], clg.get("short_name"), clg["district"], clg.get("state", "Tamil Nadu"),
+            clg.get("college_type", "Engineering"), clg.get("latitude"), clg.get("longitude"),
+            clg.get("verified", 1), clg.get("address"), clg.get("website"), clg.get("source_url")
+        ))
 
+    # Synchronize demo student profile to canonical Sri Sairam Engineering College
+    cur.execute("""
+    UPDATE profiles
+    SET college_id = 'clg-sairam-eng', college_name = 'Sri Sairam Engineering College'
+    WHERE id = 'usr-student-1';
+    """)
+
+    # Ensure demo events with fresh live/upcoming timestamps are present
+    for evt in get_demo_events():
+        cur.execute("""
+        INSERT OR REPLACE INTO events (
+            id, organizer_id, organizer_name, college_id, college_name, title, description,
+            category, poster_url, start_date, end_date, registration_deadline, venue,
+            latitude, longitude, format, fee, eligibility, capacity, registered_count,
+            status, canonical_registration_link, is_external, has_transport, transport_details,
+            whatsapp_group_link, agenda
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            evt["id"], evt["organizer_id"], evt["organizer_name"], evt["college_id"], evt["college_name"],
+            evt["title"], evt["description"], evt["category"], evt.get("poster_url"), evt["start_date"],
+            evt["end_date"], evt["registration_deadline"], evt["venue"], evt.get("latitude"), evt.get("longitude"),
+            evt.get("format", "offline"), evt.get("fee", 0), evt.get("eligibility", ""), evt.get("capacity", 100),
+            evt.get("registered_count", 0), evt.get("status", "open"), evt.get("canonical_registration_link"),
+            evt.get("is_external", 0), evt.get("has_transport", 0),
+            json.dumps(evt["transport_details"]) if evt.get("transport_details") else None,
+            evt.get("whatsapp_group_link"),
+            json.dumps(evt["agenda"]) if evt.get("agenda") else None
+        ))
+
+    # Seed users and timetable if empty
+    user_count = cur.execute("SELECT COUNT(*) FROM profiles").fetchone()[0]
+    if user_count == 0:
         # Users
         for usr in get_demo_users():
             cur.execute("""
@@ -236,27 +269,6 @@ def init_db():
             """, (
                 usr["id"], usr["email"], usr["password_hash"], usr["display_name"], usr["role"],
                 usr["college_id"], usr["college_name"], usr["department"], usr["year"], usr["phone"]
-            ))
-
-        # Events
-        for evt in get_demo_events():
-            cur.execute("""
-            INSERT INTO events (
-                id, organizer_id, organizer_name, college_id, college_name, title, description,
-                category, poster_url, start_date, end_date, registration_deadline, venue,
-                latitude, longitude, format, fee, eligibility, capacity, registered_count,
-                status, canonical_registration_link, is_external, has_transport, transport_details,
-                whatsapp_group_link, agenda
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                evt["id"], evt["organizer_id"], evt["organizer_name"], evt["college_id"], evt["college_name"],
-                evt["title"], evt["description"], evt["category"], evt["poster_url"], evt["start_date"],
-                evt["end_date"], evt["registration_deadline"], evt["venue"], evt["latitude"], evt["longitude"],
-                evt["format"], evt["fee"], evt["eligibility"], evt["capacity"], evt["registered_count"],
-                evt["status"], evt["canonical_registration_link"], evt["is_external"], evt["has_transport"],
-                json.dumps(evt["transport_details"]) if evt["transport_details"] else None,
-                evt["whatsapp_group_link"],
-                json.dumps(evt["agenda"]) if evt["agenda"] else None
             ))
 
         # Timetable

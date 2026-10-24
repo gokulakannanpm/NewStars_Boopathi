@@ -9,7 +9,8 @@ import {
   Bell,
   User,
   Compass,
-  GraduationCap
+  GraduationCap,
+  MapPin
 } from 'lucide-react';
 import { Navbar } from '../common/Navbar';
 import { Footer } from '../common/Footer';
@@ -21,6 +22,7 @@ export const StudentLayout: React.FC = () => {
 
   const navItems = [
     { label: 'Overview', path: '/student/dashboard', icon: LayoutDashboard },
+    { label: 'Explore Nearby Map', path: '/explore', icon: MapPin },
     { label: 'Discover Events', path: '/events', icon: Compass },
     { label: 'My Registrations', path: '/student/registrations', icon: CalendarDays },
     { label: 'My Timetable', path: '/student/timetable', icon: Clock },

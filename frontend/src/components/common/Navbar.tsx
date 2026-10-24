@@ -12,7 +12,8 @@ import {
   ShieldAlert,
   ChevronDown,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  MapPin
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
@@ -57,7 +58,7 @@ export const Navbar: React.FC = () => {
             <span className="font-semibold text-white">
               {role === 'organizer'
                 ? 'Organizer Portal (Dr. Arun Kumar, CEG)'
-                : 'Student Portal (Gokul Kannan, SSN)'}
+                : `Student Portal (${user?.display_name || 'Gokul Kannan'}, ${user?.college_name || 'Sri Sairam Engineering College'})`}
             </span>
           </div>
 
@@ -107,6 +108,21 @@ export const Navbar: React.FC = () => {
 
           {/* Desktop Navigation Links */}
           <nav className="hidden md:flex items-center gap-1 lg:gap-2">
+            <Link
+              to="/explore"
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                isActive('/explore')
+                  ? 'text-indigo-600 bg-indigo-50 font-semibold shadow-2xs'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100/70'
+              }`}
+            >
+              <MapPin className="w-4 h-4 text-indigo-500 shrink-0" />
+              <span>Explore Nearby</span>
+              <span className="inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-700 border border-rose-200">
+                LIVE
+              </span>
+            </Link>
+
             <Link
               to="/events"
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -252,6 +268,19 @@ export const Navbar: React.FC = () => {
       {/* Mobile drawer */}
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-slate-200 bg-white px-4 pt-2 pb-6 space-y-2">
+          <Link
+            to="/explore"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold text-indigo-700 bg-indigo-50/70 border border-indigo-100"
+          >
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-indigo-600" />
+              <span>Explore Nearby Map</span>
+            </div>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-rose-600 text-white animate-pulse">
+              LIVE
+            </span>
+          </Link>
           <Link
             to="/events"
             onClick={() => setMobileMenuOpen(false)}

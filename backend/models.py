@@ -46,18 +46,26 @@ class ProfileUpdateRequest(BaseModel):
     phone: Optional[str] = None
 
 # ==================== College Models ====================
+CollegeType = Literal["Engineering", "Arts and Science", "Medical and Health Sciences", "Management", "Other"]
+
 class College(BaseModel):
     id: str
     name: str
     short_name: Optional[str] = None
     district: str
     state: str = "Tamil Nadu"
+    college_type: Optional[str] = "Engineering"
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     verified: bool = True
     address: Optional[str] = None
     logo_url: Optional[str] = None
     website: Optional[str] = None
+    source_url: Optional[str] = None
+    distance_km: Optional[float] = None
+    live_events_count: Optional[int] = 0
+    upcoming_events_count: Optional[int] = 0
+    total_events_count: Optional[int] = 0
 
 # ==================== Event Models ====================
 EventCategory = Literal["Technical", "Hackathon", "Symposium", "Workshop", "Cultural", "Sports", "Management"]
@@ -105,6 +113,14 @@ class Event(BaseModel):
     completed_at: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
+
+class CollegeEventsGrouped(BaseModel):
+    college: College
+    happening_now: List[Event] = []
+    starting_soon: List[Event] = []
+    upcoming: List[Event] = []
+    past: List[Event] = []
+    counts: Dict[str, int] = {}
 
 class EventCreate(BaseModel):
     title: str

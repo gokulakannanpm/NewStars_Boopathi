@@ -8,6 +8,7 @@ export const CollegesPage: React.FC = () => {
   const [colleges, setColleges] = useState<College[]>([]);
   const [search, setSearch] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('all');
+  const [selectedType, setSelectedType] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [loading, setLoading] = useState(true);
 
@@ -26,7 +27,8 @@ export const CollegesPage: React.FC = () => {
       (c.short_name && c.short_name.toLowerCase().includes(search.toLowerCase())) ||
       c.district.toLowerCase().includes(search.toLowerCase());
     const matchDistrict = selectedDistrict === 'all' || c.district === selectedDistrict;
-    return matchSearch && matchDistrict;
+    const matchType = selectedType === 'all' || (c.college_type && c.college_type.toLowerCase() === selectedType.toLowerCase());
+    return matchSearch && matchDistrict && matchType;
   });
 
   return (
@@ -45,27 +47,60 @@ export const CollegesPage: React.FC = () => {
           </p>
         </div>
 
-        {/* View Switcher: Grid vs Map */}
-        <div className="bg-slate-100 p-1 rounded-xl flex items-center text-xs font-semibold">
-          <button
-            onClick={() => setViewMode('grid')}
-            className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-              viewMode === 'grid' ? 'bg-white text-indigo-700 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
+        {/* Discovery Map CTA & View Switcher */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            to="/explore"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-colors shadow-2xs flex items-center gap-2"
           >
-            <Building2 className="w-3.5 h-3.5" />
-            <span>Campus List</span>
-          </button>
-          <button
-            onClick={() => setViewMode('map')}
-            className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-              viewMode === 'map' ? 'bg-white text-indigo-700 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Map className="w-3.5 h-3.5" />
-            <span>Interactive Map View</span>
-          </button>
+            <Compass className="w-4 h-4 text-white" />
+            <span>Open Nearby Map (30 km & 50 km)</span>
+          </Link>
+
+          <div className="bg-slate-100 p-1 rounded-xl flex items-center text-xs font-semibold">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
+                viewMode === 'grid' ? 'bg-white text-indigo-700 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              <span>Campus List</span>
+            </button>
+            <button
+              onClick={() => setViewMode('map')}
+              className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
+                viewMode === 'map' ? 'bg-white text-indigo-700 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Map className="w-3.5 h-3.5" />
+              <span>Pin View</span>
+            </button>
+          </div>
         </div>
+      </div>
+
+      {/* College Type Filtering Bar */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+        {[
+          { label: 'All Institutions', val: 'all' },
+          { label: 'Engineering', val: 'Engineering' },
+          { label: 'Arts & Science', val: 'Arts and Science' },
+          { label: 'Medical & Health', val: 'Medical and Health Sciences' },
+          { label: 'Management', val: 'Management' }
+        ].map((t) => (
+          <button
+            key={t.val}
+            onClick={() => setSelectedType(t.val)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
+              selectedType === t.val
+                ? 'bg-indigo-600 text-white shadow-2xs'
+                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       {/* Search & District Filter Bar */}
@@ -144,20 +179,28 @@ export const CollegesPage: React.FC = () => {
                   )}
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between gap-3 text-xs">
-                  {clg.latitude && clg.longitude ? (
-                    <a
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${clg.latitude},${clg.longitude}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-slate-600 hover:text-indigo-600 font-medium flex items-center gap-1 transition-colors"
+                <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-3">
+                    <Link
+                      to={`/explore?college=${clg.id}`}
+                      className="text-slate-700 hover:text-indigo-600 font-semibold flex items-center gap-1 transition-colors"
                     >
-                      <MapPin className="w-3.5 h-3.5 text-indigo-500" />
-                      <span>Google Directions</span>
-                    </a>
-                  ) : (
-                    <span className="text-slate-400">Venue details on event pass</span>
-                  )}
+                      <MapPin className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>View on Map</span>
+                    </Link>
+
+                    {clg.latitude && clg.longitude && (
+                      <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${clg.latitude},${clg.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-slate-500 hover:text-indigo-600 font-medium hidden sm:flex items-center gap-1 transition-colors"
+                      >
+                        <ExternalLink className="w-3 h-3 text-slate-400" />
+                        <span>Directions</span>
+                      </a>
+                    )}
+                  </div>
 
                   <Link
                     to={`/events?college_id=${clg.id}`}

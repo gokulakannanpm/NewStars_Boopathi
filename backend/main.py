@@ -31,7 +31,7 @@ from models import (
     AttendanceCheckinRequest, TeamCheckinRequest, TransportAskAIRequest, BulkCertificateIssueRequest,
     TimetableEntry, TimetableCreate, ConflictDetectionResult,
     StudentQuestion, QuestionCreate, QuestionAnswer, WaitlistEntry,
-    Certificate, CertificateIssueRequest, Notification, College
+    Certificate, CertificateIssueRequest, Notification, College, CollegeEventsGrouped
 )
 from database import init_db, query_db, execute_db
 from conflict_engine import check_event_conflict, calculate_haversine_distance_km, parse_iso_datetime
@@ -443,7 +443,11 @@ OFFICIAL TRANSPORT DOCUMENTS:
 
 # ==================== Colleges Endpoints ====================
 @app.get("/api/colleges", response_model=List[College])
-def list_colleges(search: Optional[str] = None, district: Optional[str] = None):
+def list_colleges(
+    search: Optional[str] = None,
+    district: Optional[str] = None,
+    college_type: Optional[str] = None
+):
     query = "SELECT * FROM colleges WHERE 1=1"
     params = []
     if search:
@@ -453,9 +457,147 @@ def list_colleges(search: Optional[str] = None, district: Optional[str] = None):
     if district:
         query += " AND district = ?"
         params.append(district)
+    if college_type and college_type != "all":
+        nt = college_type.strip().lower()
+        if "art" in nt:
+            query += " AND (LOWER(college_type) LIKE '%art%')"
+        elif "med" in nt or "health" in nt:
+            query += " AND (LOWER(college_type) LIKE '%med%' OR LOWER(college_type) LIKE '%health%')"
+        elif "law" in nt:
+            query += " AND (LOWER(college_type) LIKE '%law%')"
+        elif "manag" in nt or "mba" in nt:
+            query += " AND (LOWER(college_type) LIKE '%manag%' OR LOWER(college_type) LIKE '%mba%')"
+        elif "eng" in nt or "tech" in nt:
+            query += " AND (LOWER(college_type) LIKE '%eng%' OR LOWER(college_type) LIKE '%tech%')"
+        else:
+            query += " AND LOWER(college_type) = LOWER(?)"
+            params.append(college_type)
     query += " ORDER BY name ASC"
     rows = query_db(query, tuple(params))
     return [College(**r) for r in rows]
+
+@app.get("/api/colleges/nearby", response_model=List[College])
+def get_nearby_colleges(
+    lat: float = Query(..., description="Latitude of user or search point"),
+    lng: float = Query(..., description="Longitude of user or search point"),
+    radius_km: float = Query(30.0, description="Discovery radius in kilometers (e.g. 30 or 50)"),
+    college_type: Optional[str] = Query(None, description="Filter by college type: Engineering, Arts & Science, Medical & Health Sciences, Law, Management, or all"),
+    search: Optional[str] = Query(None, description="Search keyword for college name, short name or district")
+):
+    query = "SELECT * FROM colleges WHERE 1=1"
+    params = []
+    if search:
+        query += " AND (name LIKE ? OR short_name LIKE ? OR district LIKE ?)"
+        s = f"%{search}%"
+        params.extend([s, s, s])
+    if college_type and college_type != "all":
+        nt = college_type.strip().lower()
+        if "art" in nt:
+            query += " AND (LOWER(college_type) LIKE '%art%')"
+        elif "med" in nt or "health" in nt:
+            query += " AND (LOWER(college_type) LIKE '%med%' OR LOWER(college_type) LIKE '%health%')"
+        elif "law" in nt:
+            query += " AND (LOWER(college_type) LIKE '%law%')"
+        elif "manag" in nt or "mba" in nt:
+            query += " AND (LOWER(college_type) LIKE '%manag%' OR LOWER(college_type) LIKE '%mba%')"
+        elif "eng" in nt or "tech" in nt:
+            query += " AND (LOWER(college_type) LIKE '%eng%' OR LOWER(college_type) LIKE '%tech%')"
+        else:
+            query += " AND LOWER(college_type) = LOWER(?)"
+            params.append(college_type)
+
+    rows = query_db(query, tuple(params))
+    now_dt = datetime.now(timezone.utc)
+    now_iso = now_dt.strftime("%Y-%m-%dT%H:%M:%S")
+
+    results: List[College] = []
+    for r in rows:
+        clg_lat = r["latitude"]
+        clg_lng = r["longitude"]
+        if clg_lat is None or clg_lng is None:
+            continue
+        try:
+            dist = calculate_haversine_distance_km(lat, lng, float(clg_lat), float(clg_lng))
+        except Exception:
+            continue
+
+        # Strict boundary enforcement: strictly exclude colleges outside the chosen radius
+        if dist > radius_km:
+            continue
+
+        clg_id = r["id"]
+        clg_events = query_db("SELECT start_date, end_date FROM events WHERE college_id = ?", (clg_id,))
+        live_count = 0
+        upcoming_count = 0
+        for ev in clg_events:
+            s_date = ev["start_date"]
+            e_date = ev["end_date"]
+            if s_date <= now_iso <= e_date:
+                live_count += 1
+            elif s_date > now_iso:
+                upcoming_count += 1
+
+        c_dict = dict(r)
+        c_dict["distance_km"] = round(dist, 1)
+        c_dict["live_events_count"] = live_count
+        c_dict["upcoming_events_count"] = upcoming_count
+        c_dict["total_events_count"] = len(clg_events)
+        results.append(College(**c_dict))
+
+    # Sort strictly by distance ascending
+    results.sort(key=lambda c: c.distance_km if c.distance_km is not None else 999999)
+    return results
+
+@app.get("/api/colleges/{college_id}/events", response_model=CollegeEventsGrouped)
+def get_college_events(college_id: str):
+    college_row = query_db("SELECT * FROM colleges WHERE id = ?", (college_id,), one=True)
+    if not college_row:
+        raise HTTPException(status_code=404, detail="College not found")
+
+    now_dt = datetime.now(timezone.utc)
+    now_iso = now_dt.strftime("%Y-%m-%dT%H:%M:%S")
+    soon_iso = (now_dt + timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%S")
+
+    event_rows = query_db("SELECT * FROM events WHERE college_id = ? ORDER BY start_date ASC", (college_id,))
+    events = [hydrate_event(r) for r in event_rows]
+
+    happening_now = []
+    starting_soon = []
+    upcoming = []
+    past = []
+
+    for ev in events:
+        s_date = ev.start_date
+        e_date = ev.end_date
+        if s_date <= now_iso <= e_date:
+            happening_now.append(ev)
+        elif now_iso < s_date <= soon_iso:
+            starting_soon.append(ev)
+        elif s_date > soon_iso:
+            upcoming.append(ev)
+        else:
+            past.append(ev)
+
+    college_data = dict(college_row)
+    college_data["live_events_count"] = len(happening_now)
+    college_data["upcoming_events_count"] = len(starting_soon) + len(upcoming)
+    college_data["total_events_count"] = len(events)
+
+    return CollegeEventsGrouped(
+        college=College(**college_data),
+        happening_now=happening_now,
+        starting_soon=starting_soon,
+        upcoming=upcoming,
+        past=past,
+        counts={
+            "happening_now": len(happening_now),
+            "starting_soon": len(starting_soon),
+            "upcoming": len(upcoming),
+            "past": len(past),
+            "total": len(events)
+        }
+    )
+
 
 # ==================== Events Endpoints ====================
 def hydrate_event(r: Dict[str, Any]) -> Event:

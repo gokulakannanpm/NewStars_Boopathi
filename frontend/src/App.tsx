@@ -21,9 +21,10 @@ import { CollegesPage } from './pages/public/CollegesPage';
 import { VerifyCertificatePage } from './pages/public/VerifyCertificatePage';
 import { EventCertificateCollectionPage } from './pages/public/EventCertificateCollectionPage';
 
-// Events
+// Events & Exploration
 import { EventsDiscoveryPage } from './pages/events/EventsDiscoveryPage';
 import { EventDetailPage } from './pages/events/EventDetailPage';
+import { ExploreMapPage } from './pages/explore/ExploreMapPage';
 
 // Student
 import { StudentDashboard } from './pages/student/StudentDashboard';
@@ -55,6 +56,7 @@ export function App() {
             {/* Public Layout Routes */}
             <Route element={<PublicLayout />}>
               <Route path="/" element={<LandingPage />} />
+              <Route path="/explore" element={<ExploreMapPage />} />
               <Route path="/events" element={<EventsDiscoveryPage />} />
               <Route path="/events/:id" element={<EventDetailPage />} />
               <Route path="/colleges" element={<CollegesPage />} />
@@ -79,6 +81,7 @@ export function App() {
             >
               <Route index element={<Navigate to="/student/dashboard" replace />} />
               <Route path="dashboard" element={<StudentDashboard />} />
+              <Route path="explore" element={<Navigate to="/explore" replace />} />
               <Route path="registrations" element={<MyRegistrationsPage />} />
               <Route path="timetable" element={<MyTimetablePage />} />
               <Route path="saved" element={<SavedEventsPage />} />

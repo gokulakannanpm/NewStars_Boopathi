@@ -13,7 +13,8 @@ import {
   TrendingUp,
   MapPin,
   Flame,
-  Bus
+  Bus,
+  Radio
 } from 'lucide-react';
 import { api } from '../../api/client';
 import { Event, College, EventCategory } from '../../api/types';
@@ -119,11 +120,23 @@ export const LandingPage: React.FC = () => {
             </button>
           </form>
 
+          {/* Signature Nearby Map Callout */}
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+            <Link
+              to="/explore"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40 text-xs font-bold transition-all shadow-md backdrop-blur-md hover:scale-105"
+            >
+              <Radio className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+              <span>Explore Nearby Campus Discovery Map (30 km & 50 km)</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
           {/* Metrics bar */}
           <div className="pt-8 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-4xl mx-auto text-left">
             <div>
-              <div className="text-2xl font-bold text-white font-heading">6+</div>
-              <div className="text-xs text-slate-400 mt-0.5">Premier University Partners</div>
+              <div className="text-2xl font-bold text-white font-heading">17+</div>
+              <div className="text-xs text-slate-400 mt-0.5">Verified Campus Institutions</div>
             </div>
             <div>
               <div className="text-2xl font-bold text-indigo-400 font-heading">100%</div>

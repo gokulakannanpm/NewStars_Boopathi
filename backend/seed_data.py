@@ -1,7 +1,8 @@
 """
 High-quality seed data for EveHub demonstration.
-Features realistic colleges, events across categories, transport schedules,
-timetable entries with a real conflict case, questions, and verifiable certificates.
+Features realistic colleges across categories (Engineering, Arts & Science, Medical, Management),
+geocoded coordinates in Tamil Nadu, live events happening right now, starting soon, upcoming,
+and timetable conflict cases.
 """
 from datetime import datetime, timedelta, timezone
 
@@ -9,29 +10,506 @@ NOW = datetime.now(timezone.utc)
 
 def get_demo_colleges():
     return [
+        # ==========================================
+        # Engineering Institutions (1 to 25)
+        # ==========================================
+        {
+            "id": "clg-sairam-eng",
+            "name": "Sri Sairam Engineering College",
+            "short_name": "Sri Sairam Eng",
+            "district": "Chennai",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 12.9602,
+            "longitude": 80.0574,
+            "verified": 1,
+            "address": "Sai Leo Nagar, West Tambaram, Chennai, Tamil Nadu 600044",
+            "website": "https://sairam.edu.in",
+            "source_url": "https://sairam.edu.in/about-us/"
+        },
+        {
+            "id": "clg-sairam-it",
+            "name": "Sri Sairam Institute of Technology",
+            "short_name": "Sri Sairam IT",
+            "district": "Chennai",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 12.9610,
+            "longitude": 80.0558,
+            "verified": 1,
+            "address": "Sai Leo Nagar, West Tambaram, Chennai, Tamil Nadu 600044",
+            "website": "https://sairamit.edu.in",
+            "source_url": "https://sairamit.edu.in/"
+        },
+        {
+            "id": "clg-ssn",
+            "name": "Sri Sivasubramaniya Nadar College of Engineering",
+            "short_name": "SSN CE",
+            "district": "Chengalpattu",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 12.7508,
+            "longitude": 80.1970,
+            "verified": 1,
+            "address": "Rajiv Gandhi Salai (OMR), Kalavakkam, Tamil Nadu 603110",
+            "website": "https://www.ssn.edu.in",
+            "source_url": "https://www.ssn.edu.in/"
+        },
+        {
+            "id": "clg-srm",
+            "name": "SRM Institute of Science and Technology",
+            "short_name": "SRM Kattankulathur",
+            "district": "Chengalpattu",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 12.8231,
+            "longitude": 80.0444,
+            "verified": 1,
+            "address": "SRM Nagar, Kattankulathur, Chengalpattu, Tamil Nadu 603203",
+            "website": "https://www.srmist.edu.in",
+            "source_url": "https://www.srmist.edu.in/"
+        },
+        {
+            "id": "clg-valliammai",
+            "name": "SRM Valliammai Engineering College",
+            "short_name": "SRM Valliammai",
+            "district": "Chengalpattu",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 12.8258,
+            "longitude": 80.0411,
+            "verified": 1,
+            "address": "SRM Nagar, Kattankulathur, Tamil Nadu 603203",
+            "website": "https://srmvalliammai.ac.in",
+            "source_url": "https://srmvalliammai.ac.in/"
+        },
+        {
+            "id": "clg-crescent",
+            "name": "B.S. Abdur Rahman Crescent Institute of Science and Technology",
+            "short_name": "Crescent Institute",
+            "district": "Chengalpattu",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 12.8797,
+            "longitude": 80.0833,
+            "verified": 1,
+            "address": "GST Road, Vandalur, Chennai, Tamil Nadu 600048",
+            "website": "https://crescent.education",
+            "source_url": "https://crescent.education/"
+        },
+        {
+            "id": "clg-sathyabama",
+            "name": "Sathyabama Institute of Science and Technology",
+            "short_name": "Sathyabama",
+            "district": "Chennai",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 12.8717,
+            "longitude": 80.2208,
+            "verified": 1,
+            "address": "Jeppiaar Nagar, Rajiv Gandhi Salai, Semmenchery, Chennai, Tamil Nadu 600119",
+            "website": "https://www.sathyabama.ac.in",
+            "source_url": "https://www.sathyabama.ac.in/"
+        },
+        {
+            "id": "clg-hindustan",
+            "name": "Hindustan Institute of Technology and Science",
+            "short_name": "Hindustan (HITS)",
+            "district": "Chengalpattu",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 12.8166,
+            "longitude": 80.2198,
+            "verified": 1,
+            "address": "1, Rajiv Gandhi Salai (OMR), Padur, Kelambakkam, Tamil Nadu 603103",
+            "website": "https://hindustanuniv.ac.in",
+            "source_url": "https://hindustanuniv.ac.in/"
+        },
+        {
+            "id": "clg-vit-chennai",
+            "name": "Vellore Institute of Technology, Chennai (VIT Chennai)",
+            "short_name": "VIT Chennai",
+            "district": "Chengalpattu",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 12.8406,
+            "longitude": 80.1534,
+            "verified": 1,
+            "address": "Vandalur-Kelambakkam Road, Rajan Nagar, Chennai, Tamil Nadu 600127",
+            "website": "https://chennai.vit.ac.in",
+            "source_url": "https://chennai.vit.ac.in/"
+        },
+        {
+            "id": "clg-saveetha",
+            "name": "Saveetha Engineering College",
+            "short_name": "Saveetha Eng",
+            "district": "Kanchipuram",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 13.0280,
+            "longitude": 80.0163,
+            "verified": 1,
+            "address": "Saveetha Nagar, Thandalam, Chennai, Tamil Nadu 602105",
+            "website": "https://saveetha.ac.in",
+            "source_url": "https://saveetha.ac.in/"
+        },
+        {
+            "id": "clg-stjosephs-eng",
+            "name": "St. Joseph's College of Engineering",
+            "short_name": "St. Joseph's Eng",
+            "district": "Chennai",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 12.8689,
+            "longitude": 80.2181,
+            "verified": 1,
+            "address": "Jeppiaar Nagar, Old Mahabalipuram Road, Semmenchery, Chennai, Tamil Nadu 600119",
+            "website": "https://stjosephs.ac.in",
+            "source_url": "https://stjosephs.ac.in/"
+        },
+        {
+            "id": "clg-stjosephs-it",
+            "name": "St. Joseph's Institute of Technology",
+            "short_name": "St. Joseph's IT",
+            "district": "Chennai",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 12.8676,
+            "longitude": 80.2173,
+            "verified": 1,
+            "address": "Jeppiaar Nagar, Old Mahabalipuram Road, Semmenchery, Chennai, Tamil Nadu 600119",
+            "website": "https://stjosef.ac.in",
+            "source_url": "https://stjosef.ac.in/"
+        },
+        {
+            "id": "clg-jeppiaar",
+            "name": "Jeppiaar Engineering College",
+            "short_name": "Jeppiaar Eng",
+            "district": "Chennai",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 12.8683,
+            "longitude": 80.2227,
+            "verified": 1,
+            "address": "Jeppiaar Nagar, Rajiv Gandhi Salai, Chennai, Tamil Nadu 600119",
+            "website": "https://jeppiaarcollege.org",
+            "source_url": "https://jeppiaarcollege.org/"
+        },
+        {
+            "id": "clg-rec",
+            "name": "Rajalakshmi Engineering College",
+            "short_name": "REC Thandalam",
+            "district": "Kanchipuram",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 13.0084,
+            "longitude": 80.0033,
+            "verified": 1,
+            "address": "Rajalakshmi Nagar, Thandalam, Chennai, Tamil Nadu 602105",
+            "website": "https://www.rajalakshmi.org",
+            "source_url": "https://www.rajalakshmi.org/"
+        },
+        {
+            "id": "clg-easwari",
+            "name": "Easwari Engineering College",
+            "short_name": "Easwari Eng",
+            "district": "Chennai",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 13.0329,
+            "longitude": 80.1797,
+            "verified": 1,
+            "address": "Bharathi Salai, Ramapuram, Chennai, Tamil Nadu 600089",
+            "website": "https://srmeaswari.ac.in",
+            "source_url": "https://srmeaswari.ac.in/"
+        },
+        {
+            "id": "clg-panimalar",
+            "name": "Panimalar Engineering College",
+            "short_name": "Panimalar Eng",
+            "district": "Tiruvallur",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 13.0506,
+            "longitude": 80.0768,
+            "verified": 1,
+            "address": "Bangalore Trunk Road, Varadharajapuram, Poonamallee, Chennai, Tamil Nadu 600123",
+            "website": "https://panimalar.ac.in",
+            "source_url": "https://panimalar.ac.in/"
+        },
+        {
+            "id": "clg-velammal",
+            "name": "Velammal Engineering College",
+            "short_name": "Velammal Surapet",
+            "district": "Chennai",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 13.1492,
+            "longitude": 80.1706,
+            "verified": 1,
+            "address": "Ambattur-Red Hills Road, Surapet, Chennai, Tamil Nadu 600066",
+            "website": "https://velammal.edu.in",
+            "source_url": "https://velammal.edu.in/"
+        },
+        {
+            "id": "clg-sa-eng",
+            "name": "S.A. Engineering College",
+            "short_name": "SA Eng",
+            "district": "Tiruvallur",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 13.0722,
+            "longitude": 80.1178,
+            "verified": 1,
+            "address": "Poonamallee-Avadi Main Road, Thiruverkadu, Chennai, Tamil Nadu 600077",
+            "website": "https://saec.ac.in",
+            "source_url": "https://saec.ac.in/"
+        },
+        {
+            "id": "clg-svce",
+            "name": "Sri Venkateswara College of Engineering",
+            "short_name": "SVCE Pennalur",
+            "district": "Kanchipuram",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 12.9866,
+            "longitude": 79.9719,
+            "verified": 1,
+            "address": "Post Bag No.1, Pennalur Village, Sriperumbudur, Tamil Nadu 602117",
+            "website": "https://www.svce.ac.in",
+            "source_url": "https://www.svce.ac.in/"
+        },
+        {
+            "id": "clg-aiht",
+            "name": "Anand Institute of Higher Technology",
+            "short_name": "AIHT Kazhipattur",
+            "district": "Chengalpattu",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 12.8315,
+            "longitude": 80.2243,
+            "verified": 1,
+            "address": "Kalasalingam Nagar, Rajiv Gandhi Salai (OMR), Kazhipattur, Tamil Nadu 603103",
+            "website": "https://aiht.ac.in",
+            "source_url": "https://aiht.ac.in/"
+        },
+        {
+            "id": "clg-dhanalakshmi",
+            "name": "Dhanalakshmi College of Engineering",
+            "short_name": "Dhanalakshmi Eng",
+            "district": "Kanchipuram",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 12.9152,
+            "longitude": 80.0425,
+            "verified": 1,
+            "address": "Dr. V. P. R. Nagar, Manimangalam, Varadharajapuram Post, Chennai, Tamil Nadu 601301",
+            "website": "https://dce.edu.in",
+            "source_url": "https://dce.edu.in/"
+        },
+        {
+            "id": "clg-cit",
+            "name": "Chennai Institute of Technology",
+            "short_name": "CIT Kundrathur",
+            "district": "Chennai",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 12.9719,
+            "longitude": 80.0440,
+            "verified": 1,
+            "address": "SH-113, Sarathy Nagar, Kundrathur, Chennai, Tamil Nadu 600069",
+            "website": "https://citchennai.edu.in",
+            "source_url": "https://citchennai.edu.in/"
+        },
         {
             "id": "clg-ceg",
             "name": "College of Engineering, Guindy (Anna University)",
             "short_name": "CEG Anna Univ",
             "district": "Chennai",
             "state": "Tamil Nadu",
+            "college_type": "Engineering",
             "latitude": 13.0109,
             "longitude": 80.2354,
             "verified": 1,
             "address": "12, Sardar Patel Rd, Guindy, Chennai, Tamil Nadu 600025",
-            "website": "https://ceg.annauniv.edu"
+            "website": "https://ceg.annauniv.edu",
+            "source_url": "https://ceg.annauniv.edu/"
         },
+        {
+            "id": "clg-mit-chromepet",
+            "name": "Madras Institute of Technology (Anna University)",
+            "short_name": "MIT Chromepet",
+            "district": "Chengalpattu",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 12.9482,
+            "longitude": 80.1402,
+            "verified": 1,
+            "address": "MIT Road, Radha Nagar, Chromepet, Chennai, Tamil Nadu 600044",
+            "website": "https://www.mitindia.edu",
+            "source_url": "https://www.mitindia.edu/"
+        },
+        {
+            "id": "clg-veltech",
+            "name": "Vel Tech Rangarajan Dr. Sagunthala R&D Institute of Science and Technology",
+            "short_name": "Vel Tech Avadi",
+            "district": "Tiruvallur",
+            "state": "Tamil Nadu",
+            "college_type": "Engineering",
+            "latitude": 13.1834,
+            "longitude": 80.1044,
+            "verified": 1,
+            "address": "400 Feet Outer Ring Road, Avadi, Chennai, Tamil Nadu 600062",
+            "website": "https://www.veltech.edu.in",
+            "source_url": "https://www.veltech.edu.in/"
+        },
+
+        # ==========================================
+        # Other Institutions (26 to 30)
+        # ==========================================
+        {
+            "id": "clg-mcc",
+            "name": "Madras Christian College (MCC)",
+            "short_name": "MCC Tambaram",
+            "district": "Chennai",
+            "state": "Tamil Nadu",
+            "college_type": "Arts & Science",
+            "latitude": 12.9229,
+            "longitude": 80.1235,
+            "verified": 1,
+            "address": "Velachery Rd, Tambaram East, Chennai, Tamil Nadu 600059",
+            "website": "https://mcc.edu.in",
+            "source_url": "https://mcc.edu.in/"
+        },
+        {
+            "id": "clg-loyola",
+            "name": "Loyola College (Autonomous)",
+            "short_name": "Loyola Chennai",
+            "district": "Chennai",
+            "state": "Tamil Nadu",
+            "college_type": "Arts & Science",
+            "latitude": 13.0626,
+            "longitude": 80.2341,
+            "verified": 1,
+            "address": "Sterling Rd, Nungambakkam, Chennai, Tamil Nadu 600034",
+            "website": "https://www.loyolacollege.edu",
+            "source_url": "https://www.loyolacollege.edu/"
+        },
+        {
+            "id": "clg-presidency",
+            "name": "Presidency College (Autonomous)",
+            "short_name": "Presidency College",
+            "district": "Chennai",
+            "state": "Tamil Nadu",
+            "college_type": "Arts & Science",
+            "latitude": 13.0583,
+            "longitude": 80.2818,
+            "verified": 1,
+            "address": "Kamarajar Salai, Chepauk, Chennai, Tamil Nadu 600005",
+            "website": "https://presidencycollegechennai.ac.in",
+            "source_url": "https://presidencycollegechennai.ac.in/"
+        },
+        {
+            "id": "clg-soel-tndalu",
+            "name": "School of Excellence in Law, The Tamil Nadu Dr. Ambedkar Law University",
+            "short_name": "SOEL TNDALU (Law)",
+            "district": "Chennai",
+            "state": "Tamil Nadu",
+            "college_type": "Law",
+            "latitude": 12.9785,
+            "longitude": 80.2443,
+            "verified": 1,
+            "address": "MGR Salai, Near Taramani Railway Station, Perungudi, Chennai, Tamil Nadu 600113",
+            "website": "https://tndalu.ac.in",
+            "source_url": "https://tndalu.ac.in/soel.php"
+        },
+        {
+            "id": "clg-glim",
+            "name": "Great Lakes Institute of Management",
+            "short_name": "Great Lakes (GLIM)",
+            "district": "Chengalpattu",
+            "state": "Tamil Nadu",
+            "college_type": "Management",
+            "latitude": 12.5855,
+            "longitude": 80.1557,
+            "verified": 1,
+            "address": "Dr. Bala V. Balachandar Campus, East Coast Road, Manamai, Tamil Nadu 603102",
+            "website": "https://www.greatlakes.edu.in",
+            "source_url": "https://www.greatlakes.edu.in/"
+        },
+
+        # ==========================================
+        # Additional Verified Campuses Preserved
+        # ==========================================
         {
             "id": "clg-iitm",
             "name": "Indian Institute of Technology Madras (IIT Madras)",
             "short_name": "IIT Madras",
             "district": "Chennai",
             "state": "Tamil Nadu",
+            "college_type": "Engineering",
             "latitude": 12.9915,
             "longitude": 80.2337,
             "verified": 1,
             "address": "IIT P.O., Chennai, Tamil Nadu 600036",
-            "website": "https://www.iitm.ac.in"
+            "website": "https://www.iitm.ac.in",
+            "source_url": "https://www.iitm.ac.in/"
+        },
+        {
+            "id": "clg-doms-iitm",
+            "name": "Department of Management Studies (DoMS), IIT Madras",
+            "short_name": "DoMS IIT Madras",
+            "district": "Chennai",
+            "state": "Tamil Nadu",
+            "college_type": "Management",
+            "latitude": 12.9902,
+            "longitude": 80.2320,
+            "verified": 1,
+            "address": "IIT Madras Campus, Sardar Patel Road, Chennai, Tamil Nadu 600036",
+            "website": "https://doms.iitm.ac.in",
+            "source_url": "https://doms.iitm.ac.in/"
+        },
+        {
+            "id": "clg-mmc",
+            "name": "Madras Medical College (MMC)",
+            "short_name": "MMC Chennai",
+            "district": "Chennai",
+            "state": "Tamil Nadu",
+            "college_type": "Medical & Health Sciences",
+            "latitude": 13.0825,
+            "longitude": 80.2783,
+            "verified": 1,
+            "address": "EVR Periyar Salai, Park Town, Chennai, Tamil Nadu 600003",
+            "website": "https://mmc.ac.in",
+            "source_url": "https://mmc.ac.in/"
+        },
+        {
+            "id": "clg-srm-med",
+            "name": "SRM Medical College Hospital and Research Centre",
+            "short_name": "SRM Medical",
+            "district": "Chengalpattu",
+            "state": "Tamil Nadu",
+            "college_type": "Medical & Health Sciences",
+            "latitude": 12.8236,
+            "longitude": 80.0442,
+            "verified": 1,
+            "address": "SRM Nagar, Potheri, Kattankulathur, Tamil Nadu 603203",
+            "website": "https://srmist.edu.in/medical",
+            "source_url": "https://srmist.edu.in/medical"
+        },
+        {
+            "id": "clg-stanley",
+            "name": "Stanley Medical College",
+            "short_name": "Stanley Med",
+            "district": "Chennai",
+            "state": "Tamil Nadu",
+            "college_type": "Medical & Health Sciences",
+            "latitude": 13.1070,
+            "longitude": 80.2872,
+            "verified": 1,
+            "address": "No. 1, Old Jail Rd, George Town, Chennai, Tamil Nadu 600001",
+            "website": "https://stanleymedicalcollege.ac.in",
+            "source_url": "https://stanleymedicalcollege.ac.in/"
         },
         {
             "id": "clg-psg",
@@ -39,23 +517,13 @@ def get_demo_colleges():
             "short_name": "PSG Tech",
             "district": "Coimbatore",
             "state": "Tamil Nadu",
+            "college_type": "Engineering",
             "latitude": 11.0245,
             "longitude": 76.9946,
             "verified": 1,
             "address": "Avinashi Rd, Peelamedu, Coimbatore, Tamil Nadu 641004",
-            "website": "https://www.psgtech.edu"
-        },
-        {
-            "id": "clg-ssn",
-            "name": "SSN College of Engineering",
-            "short_name": "SSN CE",
-            "district": "Chengalpattu",
-            "state": "Tamil Nadu",
-            "latitude": 12.7508,
-            "longitude": 80.1970,
-            "verified": 1,
-            "address": "Old Mahabalipuram Rd, Kalavakkam, Tamil Nadu 603110",
-            "website": "https://www.ssn.edu.in"
+            "website": "https://www.psgtech.edu",
+            "source_url": "https://www.psgtech.edu/"
         },
         {
             "id": "clg-nitt",
@@ -63,11 +531,13 @@ def get_demo_colleges():
             "short_name": "NIT Trichy",
             "district": "Tiruchirappalli",
             "state": "Tamil Nadu",
+            "college_type": "Engineering",
             "latitude": 10.7607,
             "longitude": 78.8143,
             "verified": 1,
             "address": "Tanjore Main Rd, NH67, Tiruchirappalli, Tamil Nadu 620015",
-            "website": "https://www.nitt.edu"
+            "website": "https://www.nitt.edu",
+            "source_url": "https://www.nitt.edu/"
         },
         {
             "id": "clg-vit",
@@ -75,11 +545,13 @@ def get_demo_colleges():
             "short_name": "VIT Vellore",
             "district": "Vellore",
             "state": "Tamil Nadu",
+            "college_type": "Engineering",
             "latitude": 12.9692,
             "longitude": 79.1559,
             "verified": 1,
             "address": "Near Katpadi Rd, Vellore, Tamil Nadu 632014",
-            "website": "https://vit.ac.in"
+            "website": "https://vit.ac.in",
+            "source_url": "https://vit.ac.in/"
         }
     ]
 
@@ -88,11 +560,11 @@ def get_demo_users():
         {
             "id": "usr-student-1",
             "email": "student@evehub.in",
-            "password_hash": "evehub123", # demo mode hash
+            "password_hash": "evehub123",
             "display_name": "Gokul Kannan",
             "role": "student",
-            "college_id": "clg-ssn",
-            "college_name": "SSN College of Engineering",
+            "college_id": "clg-sairam-eng",
+            "college_name": "Sri Sairam Engineering College",
             "department": "Information Technology",
             "year": "3rd Year",
             "phone": "+91 98765 43210"
@@ -124,13 +596,179 @@ def get_demo_users():
     ]
 
 def get_demo_events():
-    d1 = (NOW + timedelta(days=3)).strftime("%Y-%m-%d")
-    d2 = (NOW + timedelta(days=5)).strftime("%Y-%m-%d")
-    d3 = (NOW + timedelta(days=8)).strftime("%Y-%m-%d")
-    d4 = (NOW + timedelta(days=12)).strftime("%Y-%m-%d")
-    d5 = (NOW + timedelta(days=16)).strftime("%Y-%m-%d")
+    now = datetime.now(timezone.utc)
+    d1 = (now + timedelta(days=3)).strftime("%Y-%m-%d")
+    d2 = (now + timedelta(days=5)).strftime("%Y-%m-%d")
+    d3 = (now + timedelta(days=8)).strftime("%Y-%m-%d")
+    d4 = (now + timedelta(days=12)).strftime("%Y-%m-%d")
+    d5 = (now + timedelta(days=16)).strftime("%Y-%m-%d")
 
     return [
+        # ==================== HAPPENING RIGHT NOW (Genuinely Live) ====================
+        {
+            "id": "evt-live-ssn-hack",
+            "organizer_id": "usr-organizer-1",
+            "organizer_name": "SSN ACM Student Chapter",
+            "college_id": "clg-ssn",
+            "college_name": "SSN College of Engineering",
+            "title": "SSN Invente '26: 24-Hour AI & Edge IoT Hackathon",
+            "description": "LIVE NOW: Teams are actively building computer vision, sensor telemetry, and embedded AI solutions on campus. Mentors and jury check-ins in progress.",
+            "category": "Hackathon",
+            "poster_url": "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80",
+            "start_date": (now - timedelta(hours=3)).strftime("%Y-%m-%dT%H:%M:00"),
+            "end_date": (now + timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M:00"),
+            "registration_deadline": (now - timedelta(hours=4)).strftime("%Y-%m-%dT%H:%M:00"),
+            "venue": "Central Computing Lab & Auditorium, SSN Kalavakkam Campus",
+            "latitude": 12.7508,
+            "longitude": 80.1970,
+            "format": "offline",
+            "fee": 0,
+            "eligibility": "Enrolled engineering students with valid collegiate ID",
+            "capacity": 150,
+            "registered_count": 142,
+            "status": "open",
+            "canonical_registration_link": None,
+            "is_external": 0,
+            "has_transport": 1,
+            "transport_details": {
+                "available": True,
+                "pickup_points": ["Tambaram Sanatorium", "Guindy Metro Exit", "Thiruvanmiyur Depot"],
+                "departure_time": "07:00 AM",
+                "return_time": "09:30 PM",
+                "contact_person": "SSN Transport Coordinator (+91 94444 11111)",
+                "notes": "Express campus shuttles operating throughout the hackathon."
+            },
+            "whatsapp_group_link": "https://chat.whatsapp.com/EveHubDemoSSNLive",
+            "agenda": [
+                {"time": "In Progress", "activity": "Track 2 Code Sprint & Sensor Integration"},
+                {"time": "04:00 PM", "activity": "Final Code Freeze & Pitch Presentations"},
+                {"time": "05:30 PM", "activity": "Valedictory & Prize Distribution"}
+            ]
+        },
+        {
+            "id": "evt-live-iitm-robotics",
+            "organizer_id": "usr-organizer-2",
+            "organizer_name": "Shaastra IIT Madras",
+            "college_id": "clg-iitm",
+            "college_name": "Indian Institute of Technology Madras (IIT Madras)",
+            "title": "Shaastra 2026: Autonomous Drone & Edge Vision Arena",
+            "description": "LIVE NOW: Obstacle course flight trials and autonomous landing trials are currently underway at the IIT Madras outdoor arena.",
+            "category": "Technical",
+            "poster_url": "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?auto=format&fit=crop&w=1200&q=80",
+            "start_date": (now - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:00"),
+            "end_date": (now + timedelta(hours=4)).strftime("%Y-%m-%dT%H:%M:00"),
+            "registration_deadline": (now - timedelta(hours=3)).strftime("%Y-%m-%dT%H:%M:00"),
+            "venue": "IC&SR Open Grounds & Robotics Enclosure, IIT Madras",
+            "latitude": 12.9915,
+            "longitude": 80.2337,
+            "format": "offline",
+            "fee": 0,
+            "eligibility": "B.E/B.Tech/M.Tech students with drone team passes",
+            "capacity": 200,
+            "registered_count": 180,
+            "status": "open",
+            "canonical_registration_link": None,
+            "is_external": 0,
+            "has_transport": 1,
+            "transport_details": {
+                "available": True,
+                "pickup_points": ["Chennai Central (Bay 4)", "Guindy Station Exit B", "Tambaram Bus Stand"],
+                "departure_time": "07:30 AM",
+                "return_time": "07:00 PM",
+                "contact_person": "Karthik (+91 98401 23456)",
+                "notes": "College ID and registration pass required at main gate."
+            },
+            "whatsapp_group_link": "https://chat.whatsapp.com/EveHubDemoIITMLive",
+            "agenda": [
+                {"time": "In Progress", "activity": "Autonomous Waypoint Navigation Trials"},
+                {"time": "03:30 PM", "activity": "Final Obstacle Course Showdown"},
+                {"time": "05:00 PM", "activity": "Jury Evaluation & Winner Announcements"}
+            ]
+        },
+
+        # ==================== STARTING SOON (Within 24 Hours) ====================
+        {
+            "id": "evt-soon-ceg-ctf",
+            "organizer_id": "usr-organizer-1",
+            "organizer_name": "CEG Computer Society",
+            "college_id": "clg-ceg",
+            "college_name": "College of Engineering, Guindy (Anna University)",
+            "title": "Kurukshetra '26: Real-Time Cyber Siege & Ethical Hacking CTF",
+            "description": "Starting in a few hours: A high-stakes jeopardy and attack-defense cybersecurity challenge testing vulnerability analysis, reverse engineering, and cryptography.",
+            "category": "Technical",
+            "poster_url": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1200&q=80",
+            "start_date": (now + timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M:00"),
+            "end_date": (now + timedelta(hours=11)).strftime("%Y-%m-%dT%H:%M:00"),
+            "registration_deadline": (now + timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:00"),
+            "venue": "Turing Hall, Department of CSE, CEG Campus",
+            "latitude": 13.0109,
+            "longitude": 80.2354,
+            "format": "offline",
+            "fee": 150,
+            "eligibility": "Undergraduate students in Computing, IT, ECE, and Cyber Security",
+            "capacity": 100,
+            "registered_count": 88,
+            "status": "closing_soon",
+            "canonical_registration_link": None,
+            "is_external": 0,
+            "has_transport": 1,
+            "transport_details": {
+                "available": True,
+                "pickup_points": ["Koyambedu CMBT", "Airport Metro", "Central Station"],
+                "departure_time": "01:00 PM",
+                "return_time": "09:00 PM",
+                "contact_person": "CEG Tech Desk (+91 94441 99999)",
+                "notes": "Laptops mandatory."
+            },
+            "whatsapp_group_link": "https://chat.whatsapp.com/EveHubDemoCEGSoon",
+            "agenda": [
+                {"time": "02:00 PM", "activity": "Rules Briefing & Target Environment Access"},
+                {"time": "02:30 PM", "activity": "CTF Flag Capture Arena Opens"},
+                {"time": "08:00 PM", "activity": "Scoreboard Freeze & Winner Walkthrough"}
+            ]
+        },
+        {
+            "id": "evt-soon-mcc-fest",
+            "organizer_id": "usr-organizer-1",
+            "organizer_name": "MCC Student Union",
+            "college_id": "clg-mcc",
+            "college_name": "Madras Christian College (MCC)",
+            "title": "DeepWoods 2026: Collegiate Western Acoustic & Theatre Showcase",
+            "description": "Starting tomorrow morning: Legendary collegiate cultural festival showcasing battle of acoustic bands, one-act street play dramas, and pro music exhibitions.",
+            "category": "Cultural",
+            "poster_url": "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=1200&q=80",
+            "start_date": (now + timedelta(hours=16)).strftime("%Y-%m-%dT%H:%M:00"),
+            "end_date": (now + timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:00"),
+            "registration_deadline": (now + timedelta(hours=12)).strftime("%Y-%m-%dT%H:%M:00"),
+            "venue": "Open Air Theatre & Anderson Hall, MCC Tambaram Campus",
+            "latitude": 12.9229,
+            "longitude": 80.1235,
+            "format": "offline",
+            "fee": 0,
+            "eligibility": "Open to all enrolled undergraduate and postgraduate students",
+            "capacity": 400,
+            "registered_count": 290,
+            "status": "open",
+            "canonical_registration_link": None,
+            "is_external": 0,
+            "has_transport": 1,
+            "transport_details": {
+                "available": True,
+                "pickup_points": ["Tambaram Railway Station Exit", "Chromepet Bus Stand"],
+                "departure_time": "08:00 AM",
+                "return_time": "07:30 PM",
+                "contact_person": "Cultural Desk (+91 94442 88888)",
+                "notes": "College ID card check at main gate."
+            },
+            "whatsapp_group_link": "https://chat.whatsapp.com/EveHubDemoMCCDeepWoods",
+            "agenda": [
+                {"time": "09:00 AM", "activity": "Opening Choral & Band Round 1"},
+                {"time": "01:30 PM", "activity": "Street Theatre & Monologue Stage"},
+                {"time": "05:00 PM", "activity": "Grand Finale & Guest Artist Performance"}
+            ]
+        },
+
+        # ==================== UPCOMING EVENTS (In 2 to 16 Days) ====================
         {
             "id": "evt-shaastra-ai",
             "organizer_id": "usr-organizer-2",
@@ -174,6 +812,47 @@ def get_demo_events():
             ]
         },
         {
+            "id": "evt-sairam-innovate",
+            "organizer_id": "usr-organizer-1",
+            "organizer_name": "Sri Sairam Innovation Cell",
+            "college_id": "clg-sairam-eng",
+            "college_name": "Sri Sairam Engineering College",
+            "title": "Sai Leo Innovate '26: National Tech Symposium & Project Expo",
+            "description": "Annual national technical symposium and autonomous project exposition featuring robotic rover showdown, full-stack app prototyping, and AI paper presentations.",
+            "category": "Technical",
+            "poster_url": "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80",
+            "start_date": f"{d1}T09:30:00",
+            "end_date": f"{d1}T17:00:00",
+            "registration_deadline": f"{d1}T08:00:00",
+            "venue": "Leo Muthu Indoor Stadium & IT Block, Sri Sairam Engineering College, West Tambaram",
+            "latitude": 12.9602,
+            "longitude": 80.0574,
+            "format": "offline",
+            "fee": 100,
+            "eligibility": "Undergraduate engineering and technology students",
+            "capacity": 250,
+            "registered_count": 130,
+            "status": "open",
+            "canonical_registration_link": None,
+            "is_external": 0,
+            "has_transport": 1,
+            "transport_details": {
+                "available": True,
+                "pickup_points": ["Tambaram Railway Station (East)", "Tambaram MEPZ", "Pallavaram Metro"],
+                "departure_time": "08:15 AM",
+                "return_time": "05:45 PM",
+                "contact_person": "Sairam Transport Desk (+91 94443 22222)",
+                "notes": "Free shuttle buses from Tambaram Station directly to campus."
+            },
+            "whatsapp_group_link": "https://chat.whatsapp.com/EveHubDemoSairamInnovate",
+            "agenda": [
+                {"time": "09:30 AM", "activity": "Inauguration at Leo Muthu Indoor Stadium"},
+                {"time": "11:00 AM", "activity": "Autonomous Rover Challenge & Web3 Sprint"},
+                {"time": "02:00 PM", "activity": "AI Research Paper & Poster Session"},
+                {"time": "04:30 PM", "activity": "Award Ceremony & Memento Distribution"}
+            ]
+        },
+        {
             "id": "evt-kurukshetra-ceg",
             "organizer_id": "usr-organizer-1",
             "organizer_name": "Dr. Arun Kumar (Convener)",
@@ -212,6 +891,152 @@ def get_demo_events():
                 {"time": "11:00 AM", "activity": "Track 1: Algorithmic CodeSprint"},
                 {"time": "02:00 PM", "activity": "Track 2: Smart Contract Security Audit"},
                 {"time": "04:30 PM", "activity": "Valedictory & Prize Distribution"}
+            ]
+        },
+        {
+            "id": "evt-loyola-fintech",
+            "organizer_id": "usr-organizer-1",
+            "organizer_name": "Loyola Commerce Association",
+            "college_id": "clg-loyola",
+            "college_name": "Loyola College (Autonomous)",
+            "title": "Ovations 2026: National Student Venture Pitch & FinTech Conclave",
+            "description": "Prestige inter-collegiate business and commerce fest featuring angel investor pitches, algorithmic equity portfolio simulations, and venture case studies.",
+            "category": "Management",
+            "poster_url": "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=1200&q=80",
+            "start_date": f"{d2}T10:00:00",
+            "end_date": f"{d2}T16:30:00",
+            "registration_deadline": f"{d2}T07:00:00",
+            "venue": "Bertram Hall, Loyola College, Nungambakkam, Chennai",
+            "latitude": 13.0626,
+            "longitude": 80.2341,
+            "format": "offline",
+            "fee": 100,
+            "eligibility": "Undergraduate and MBA/Commerce students",
+            "capacity": 200,
+            "registered_count": 135,
+            "status": "open",
+            "canonical_registration_link": None,
+            "is_external": 0,
+            "has_transport": 0,
+            "transport_details": None,
+            "whatsapp_group_link": "https://chat.whatsapp.com/EveHubDemoLoyola",
+            "agenda": [
+                {"time": "10:00 AM", "activity": "Keynote: Next-Gen Financial Architectures"},
+                {"time": "11:30 AM", "activity": "Live Pitching to Angel Investors"},
+                {"time": "03:00 PM", "activity": "Awards Ceremony & Networking"}
+            ]
+        },
+        {
+            "id": "evt-srm-med-expo",
+            "organizer_id": "usr-organizer-1",
+            "organizer_name": "SRM Medical Student Council",
+            "college_id": "clg-srm-med",
+            "college_name": "SRM Medical College Hospital and Research Centre",
+            "title": "MedPulse 2026: Emergency Medicine & Surgical Simulation Workshop",
+            "description": "Hands-on clinical simulation masterclass featuring high-fidelity trauma mannequins, laparoscopic skill rigs, and emergency triage protocols.",
+            "category": "Workshop",
+            "poster_url": "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1200&q=80",
+            "start_date": f"{d3}T09:00:00",
+            "end_date": f"{d3}T16:00:00",
+            "registration_deadline": f"{d3}T06:00:00",
+            "venue": "Clinical Skills Simulation Centre, SRM Kattankulathur",
+            "latitude": 12.8236,
+            "longitude": 80.0442,
+            "format": "offline",
+            "fee": 250,
+            "eligibility": "Medical, Nursing, Biomedical, and Allied Health Sciences students",
+            "capacity": 80,
+            "registered_count": 72,
+            "status": "closing_soon",
+            "canonical_registration_link": None,
+            "is_external": 0,
+            "has_transport": 1,
+            "transport_details": {
+                "available": True,
+                "pickup_points": ["Potheri Railway Station", "Tambaram MEPZ Gate"],
+                "departure_time": "08:15 AM",
+                "return_time": "05:00 PM",
+                "contact_person": "SRM Med Desk (+91 94443 77777)",
+                "notes": "Lab coats mandatory inside the simulation suites."
+            },
+            "whatsapp_group_link": "https://chat.whatsapp.com/EveHubDemoSRMMed",
+            "agenda": [
+                {"time": "09:00 AM", "activity": "Trauma Triage & Airway Management Simulation"},
+                {"time": "11:30 AM", "activity": "Laparoscopic Rig Hands-on Practice"},
+                {"time": "02:30 PM", "activity": "Emergency Ultrasound Scenarios"}
+            ]
+        },
+        {
+            "id": "evt-glim-summit",
+            "organizer_id": "usr-organizer-1",
+            "organizer_name": "Great Lakes E-Cell",
+            "college_id": "clg-glim",
+            "college_name": "Great Lakes Institute of Management",
+            "title": "Genesis 2026: AI in Product Management & Venture Capital Conclave",
+            "description": "Executive symposium connecting MBA aspirants and tech founders with tier-1 venture capitalists, product directors, and growth leaders.",
+            "category": "Management",
+            "poster_url": "https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=1200&q=80",
+            "start_date": f"{d3}T10:00:00",
+            "end_date": f"{d3}T17:00:00",
+            "registration_deadline": f"{d3}T08:00:00",
+            "venue": "Auditorium, Great Lakes Campus, ECR Manamai",
+            "latitude": 12.5623,
+            "longitude": 80.1472,
+            "format": "hybrid",
+            "fee": 200,
+            "eligibility": "Undergraduate & Graduate students of all disciplines",
+            "capacity": 150,
+            "registered_count": 95,
+            "status": "open",
+            "canonical_registration_link": None,
+            "is_external": 0,
+            "has_transport": 1,
+            "transport_details": {
+                "available": True,
+                "pickup_points": ["Thiruvanmiyur RTO", "Sholinganallur Junction", "Mahabalipuram Bus Stand"],
+                "departure_time": "08:30 AM",
+                "return_time": "05:30 PM",
+                "contact_person": "GLIM Transport (+91 94445 66666)",
+                "notes": "Scenic coastal shuttle available."
+            },
+            "whatsapp_group_link": "https://chat.whatsapp.com/EveHubDemoGLIM",
+            "agenda": [
+                {"time": "10:00 AM", "activity": "Panel: The AI Product Roadmap in 2026"},
+                {"time": "01:30 PM", "activity": "Product Teardown Challenge"},
+                {"time": "04:00 PM", "activity": "Fireside Chat with Lead Investors"}
+            ]
+        },
+        {
+            "id": "evt-crescent-aero",
+            "organizer_id": "usr-organizer-1",
+            "organizer_name": "Crescent Aerospace Society",
+            "college_id": "clg-crescent",
+            "college_name": "B.S. Abdur Rahman Crescent Institute of Science and Technology",
+            "title": "AeroDesign '26: UAV Aerodynamics & Flight Telemetry Challenge",
+            "description": "RC aircraft design competition and fixed-wing payload lifting challenges evaluated by aerospace research scientists and defense specialists.",
+            "category": "Technical",
+            "poster_url": "https://images.unsplash.com/photo-1519074069444-1ba4ea16e60b?auto=format&fit=crop&w=1200&q=80",
+            "start_date": f"{d4}T09:30:00",
+            "end_date": f"{d4}T16:30:00",
+            "registration_deadline": f"{d4}T07:00:00",
+            "venue": "Aerospace Hangar & Flight Test Runway, Crescent Vandalur",
+            "latitude": 12.8797,
+            "longitude": 80.0833,
+            "format": "offline",
+            "fee": 150,
+            "eligibility": "Engineering & Polytechnic students",
+            "capacity": 90,
+            "registered_count": 64,
+            "status": "open",
+            "canonical_registration_link": None,
+            "is_external": 0,
+            "has_transport": 0,
+            "transport_details": None,
+            "whatsapp_group_link": "https://chat.whatsapp.com/EveHubDemoCrescentAero",
+            "agenda": [
+                {"time": "09:30 AM", "activity": "Technical Inspection & Weight Verification"},
+                {"time": "11:00 AM", "activity": "Round 1 Flight & Payload Drop"},
+                {"time": "02:30 PM", "activity": "Speed & Endurance Telemetry Evaluation"}
             ]
         },
         {
@@ -342,7 +1167,7 @@ def get_demo_events():
             "eligibility": "University & College sports teams",
             "capacity": 120,
             "registered_count": 120,
-            "status": "waitlist", # Full capacity to showcase FIFO waitlist!
+            "status": "waitlist",
             "canonical_registration_link": None,
             "is_external": 0,
             "has_transport": 0,
@@ -353,19 +1178,52 @@ def get_demo_events():
                 {"time": "09:00 AM", "activity": "Preliminary Knockout Rounds"},
                 {"time": "03:00 PM", "activity": "Semi-Finals & Championship Match"}
             ]
+        },
+
+        # ==================== PAST / COMPLETED EVENT ====================
+        {
+            "id": "evt-past-ceg-technofete",
+            "organizer_id": "usr-organizer-1",
+            "organizer_name": "Dr. Arun Kumar (Convener)",
+            "college_id": "clg-ceg",
+            "college_name": "College of Engineering, Guindy (Anna University)",
+            "title": "Technofete '25: State-Level Algorithmic Challenge",
+            "description": "Concluded historical competition. Verified attendance records locked and digital credentials distributed to participants.",
+            "category": "Technical",
+            "poster_url": "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80",
+            "start_date": (now - timedelta(days=20)).strftime("%Y-%m-%dT09:00:00"),
+            "end_date": (now - timedelta(days=20)).strftime("%Y-%m-%dT17:00:00"),
+            "registration_deadline": (now - timedelta(days=21)).strftime("%Y-%m-%dT18:00:00"),
+            "venue": "Turing Hall, CEG Campus",
+            "latitude": 13.0109,
+            "longitude": 80.2354,
+            "format": "offline",
+            "fee": 0,
+            "eligibility": "College students",
+            "capacity": 100,
+            "registered_count": 92,
+            "status": "closed",
+            "completed_at": (now - timedelta(days=20)).strftime("%Y-%m-%dT17:30:00"),
+            "canonical_registration_link": None,
+            "is_external": 0,
+            "has_transport": 0,
+            "transport_details": None,
+            "whatsapp_group_link": None,
+            "agenda": []
         }
     ]
 
 def get_demo_timetable():
-    d1 = (NOW + timedelta(days=3)).strftime("%Y-%m-%d")
-    d3 = (NOW + timedelta(days=8)).strftime("%Y-%m-%d")
+    now = datetime.now(timezone.utc)
+    d1 = (now + timedelta(days=3)).strftime("%Y-%m-%d")
+    d3 = (now + timedelta(days=8)).strftime("%Y-%m-%d")
     return [
         {
             "id": "tt-1",
             "student_id": "usr-student-1",
             "title": "Continuous Assessment Exam: Database Management Systems",
             "type": "exam",
-            "date": d1, # Intentionally matches Shaastra Hackathon day!
+            "date": d1,
             "start_time": "10:00",
             "end_time": "12:00",
             "notes": "Hall 402, Dept of IT. Strict attendance mandatory."
@@ -393,6 +1251,7 @@ def get_demo_timetable():
     ]
 
 def get_demo_registrations():
+    now = datetime.now(timezone.utc)
     return [
         {
             "id": "reg-1",
@@ -409,11 +1268,12 @@ def get_demo_registrations():
             "qr_checkin_token": "EVH-CHK-KURUKS-9081",
             "payment_status": "paid",
             "payment_amount": 250,
-            "created_at": (NOW - timedelta(days=1)).isoformat()
+            "created_at": (now - timedelta(days=1)).isoformat()
         }
     ]
 
 def get_demo_certificates():
+    now = datetime.now(timezone.utc)
     return [
         {
             "id": "cert-1",
@@ -424,17 +1284,18 @@ def get_demo_certificates():
             "college_name": "Indian Institute of Technology Madras (IIT Madras)",
             "student_id": "usr-student-1",
             "student_name": "Gokul Kannan",
-            "issue_date": (NOW - timedelta(days=10)).strftime("%Y-%m-%d"),
+            "issue_date": (now - timedelta(days=10)).strftime("%Y-%m-%d"),
             "certificate_type": "Excellence",
             "signatory_title": "Dean of Academic Research & Convener",
             "signatory_name": "Dr. V. Kamakoti",
             "verification_token": "VERIFY-SHAAS-AI-99X",
             "status": "valid",
-            "created_at": (NOW - timedelta(days=10)).isoformat()
+            "created_at": (now - timedelta(days=10)).isoformat()
         }
     ]
 
 def get_demo_questions():
+    now = datetime.now(timezone.utc)
     return [
         {
             "id": "q-1",
@@ -447,11 +1308,11 @@ def get_demo_questions():
             "urgency": "normal",
             "answer": "Yes, each shortlisted team will be provided one NVIDIA Jetson Orin Nano Developer Kit and basic sensor peripherals at the venue. You are also welcome to bring your own sensors and laptops.",
             "answered_by": "Shaastra Technical Committee",
-            "answered_at": (NOW - timedelta(hours=5)).isoformat(),
+            "answered_at": (now - timedelta(hours=5)).isoformat(),
             "is_public_faq": 1,
             "call_requested": 0,
             "call_slot": None,
-            "created_at": (NOW - timedelta(hours=8)).isoformat()
+            "created_at": (now - timedelta(hours=8)).isoformat()
         },
         {
             "id": "q-2",
@@ -468,6 +1329,6 @@ def get_demo_questions():
             "is_public_faq": 0,
             "call_requested": 1,
             "call_slot": "Tomorrow 4:00 PM - 4:30 PM",
-            "created_at": (NOW - timedelta(hours=2)).isoformat()
+            "created_at": (now - timedelta(hours=2)).isoformat()
         }
     ]

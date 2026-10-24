@@ -14,18 +14,49 @@ export interface UserProfile {
   updated_at?: string;
 }
 
+export type CollegeType =
+  | 'Engineering'
+  | 'Arts & Science'
+  | 'Arts and Science'
+  | 'Medical & Health Sciences'
+  | 'Medical and Health Sciences'
+  | 'Law'
+  | 'Management'
+  | 'Other';
+
 export interface College {
   id: string;
   name: string;
   short_name?: string;
   district: string;
   state: string;
+  college_type?: CollegeType | string;
   latitude?: number;
   longitude?: number;
   verified: boolean;
   address?: string;
   logo_url?: string;
   website?: string;
+  source_url?: string;
+  distance_km?: number;
+  live_events_count?: number;
+  upcoming_events_count?: number;
+  total_events_count?: number;
+}
+
+export interface CollegeEventsGrouped {
+  college: College;
+  happening_now: Event[];
+  starting_soon: Event[];
+  upcoming: Event[];
+  past: Event[];
+  counts: {
+    happening_now: number;
+    starting_soon: number;
+    upcoming: number;
+    past: number;
+    total: number;
+  };
 }
 
 export type EventCategory =

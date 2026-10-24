@@ -1,5 +1,5 @@
 import {
-  UserProfile, College, Event, EventRegistration, TimetableEntry,
+  UserProfile, College, CollegeEventsGrouped, Event, EventRegistration, TimetableEntry,
   ConflictDetectionResult, StudentQuestion, Certificate, NotificationItem, OrganizerMetrics,
   TransportAskAIResult, TeamCheckinResolution, TeamCheckinResponse, BulkCertificateIssueResult, EventCertificateCollection
 } from './types';
@@ -62,12 +62,33 @@ export const api = {
   },
 
   // Colleges
-  async getColleges(params?: { search?: string; district?: string }) {
+  async getColleges(params?: { search?: string; district?: string; college_type?: string }) {
     const sp = new URLSearchParams();
     if (params?.search) sp.append('search', params.search);
     if (params?.district) sp.append('district', params.district);
+    if (params?.college_type) sp.append('college_type', params.college_type);
     const query = sp.toString() ? `?${sp.toString()}` : '';
     return request<College[]>(`/api/colleges${query}`);
+  },
+
+  async getNearbyColleges(params: {
+    lat: number;
+    lng: number;
+    radius_km?: number;
+    college_type?: string;
+    search?: string;
+  }) {
+    const sp = new URLSearchParams();
+    sp.append('lat', String(params.lat));
+    sp.append('lng', String(params.lng));
+    if (params.radius_km !== undefined) sp.append('radius_km', String(params.radius_km));
+    if (params.college_type && params.college_type !== 'all') sp.append('college_type', params.college_type);
+    if (params.search) sp.append('search', params.search);
+    return request<College[]>(`/api/colleges/nearby?${sp.toString()}`);
+  },
+
+  async getCollegeEventsGrouped(collegeId: string) {
+    return request<CollegeEventsGrouped>(`/api/colleges/${collegeId}/events`);
   },
 
   // Events

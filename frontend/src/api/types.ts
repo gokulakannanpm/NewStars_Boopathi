@@ -88,8 +88,10 @@ export interface Event {
   is_external: boolean;
   has_transport: boolean;
   transport_details?: TransportDetails;
+  transport_pdf_url?: string;
   whatsapp_group_link?: string;
   agenda?: EventAgendaItem[];
+  completed_at?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -109,6 +111,10 @@ export interface EventRegistration {
   qr_checkin_token?: string;
   payment_status: string;
   payment_amount: number;
+  is_team?: boolean;
+  team_id?: string;
+  team_name?: string;
+  team_qr_token?: string;
   created_at: string;
   event_title?: string;
   start_date?: string;
@@ -121,6 +127,7 @@ export interface EventRegistration {
   whatsapp_group_link?: string;
   transport_details?: TransportDetails;
 }
+
 
 export interface TimetableEntry {
   id: string;
@@ -211,3 +218,74 @@ export interface OrganizerMetrics {
   certificates_issued: number;
   events: Event[];
 }
+
+export interface TeamMemberStatus {
+  registration_id: string;
+  student_id: string;
+  student_name: string;
+  student_email: string;
+  student_college?: string;
+  attendance_status: string;
+  eligible: boolean;
+  attended_at?: string;
+}
+
+export interface TeamCheckinResolution {
+  success: boolean;
+  is_team: boolean;
+  team_id?: string;
+  team_name?: string;
+  event_id?: string;
+  members?: TeamMemberStatus[];
+  total_members?: number;
+  eligible_count?: number;
+  message?: string;
+}
+
+export interface TeamCheckinResponse {
+  success: boolean;
+  checked_in_count: number;
+  already_attended_count: number;
+  failed_count: number;
+  checked_in: Array<{ registration_id: string; student_name: string }>;
+  already_attended: Array<{ registration_id: string; student_name: string }>;
+  failed: Array<{ registration_id: string; reason: string }>;
+  message: string;
+}
+
+export interface TransportAskAIResult {
+  answer: string;
+  source_pages: number[];
+  citations: string[];
+  has_document: boolean;
+}
+
+export interface BulkCertificateIssueResult {
+  success: boolean;
+  issued_count: number;
+  skipped_count: number;
+  total_attended: number;
+  issued?: Array<{ certificate_id: string; student_name: string; student_college?: string }>;
+  skipped?: Array<{ student_name: string; certificate_id: string; reason: string }>;
+  message: string;
+}
+
+export interface EventCertificateCollection {
+  event_id: string;
+  event_title: string;
+  college_name: string;
+  organizer_name: string;
+  start_date: string;
+  end_date: string;
+  completed_at?: string;
+  total_issued: number;
+  certificates: Array<{
+    certificate_id: string;
+    student_name: string;
+    issue_date: string;
+    certificate_type: string;
+    template_id?: string;
+    status: string;
+  }>;
+}
+

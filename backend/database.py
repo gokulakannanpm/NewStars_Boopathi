@@ -84,8 +84,10 @@ def init_db():
         is_external INTEGER NOT NULL DEFAULT 0,
         has_transport INTEGER NOT NULL DEFAULT 0,
         transport_details TEXT, -- JSON string
+        transport_pdf_url TEXT,
         whatsapp_group_link TEXT,
         agenda TEXT,            -- JSON string
+        completed_at TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
@@ -105,6 +107,10 @@ def init_db():
         qr_checkin_token TEXT UNIQUE,
         payment_status TEXT NOT NULL DEFAULT 'free',
         payment_amount INTEGER NOT NULL DEFAULT 0,
+        is_team INTEGER NOT NULL DEFAULT 0,
+        team_id TEXT,
+        team_name TEXT,
+        team_qr_token TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         UNIQUE (event_id, student_id)
@@ -193,6 +199,21 @@ def init_db():
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
     """)
+
+    # Safe column migrations for existing databases
+    for table, col, col_type in [
+        ("events", "transport_pdf_url", "TEXT"),
+        ("events", "completed_at", "TEXT"),
+        ("event_registrations", "is_team", "INTEGER NOT NULL DEFAULT 0"),
+        ("event_registrations", "team_id", "TEXT"),
+        ("event_registrations", "team_name", "TEXT"),
+        ("event_registrations", "team_qr_token", "TEXT"),
+        ("certificates", "template_id", "TEXT DEFAULT 'standard'")
+    ]:
+        try:
+            cur.execute(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}")
+        except Exception:
+            pass
 
     # Seed if colleges is empty
     count = cur.execute("SELECT COUNT(*) FROM colleges").fetchone()[0]
@@ -325,9 +346,9 @@ def execute_db(query: str, args: tuple = ()) -> int:
     cur = conn.cursor()
     cur.execute(query, args)
     conn.commit()
-    last_id = cur.lastrowid
+    count = cur.rowcount
     conn.close()
-    return last_id
+    return count
 
 # Automatically initialize on import
 try:

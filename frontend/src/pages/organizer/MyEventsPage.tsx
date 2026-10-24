@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Plus, Users, QrCode, ExternalLink, Trash2, Edit } from 'lucide-react';
+import { Calendar, Plus, Users, QrCode, ExternalLink, Trash2, Edit, FileCheck2, Award } from 'lucide-react';
 import { api } from '../../api/client';
 import { Event } from '../../api/types';
 import { StatusBadge } from '../../components/common/StatusBadge';
@@ -35,6 +35,17 @@ export const MyEventsPage: React.FC = () => {
       await fetchEvents();
     } catch {
       toast.error('Could not cancel event');
+    }
+  };
+
+  const handleCompleteEvent = async (id: string, title: string) => {
+    if (!window.confirm(`Are you sure you want to conclude "${title}" and finalize credentials?`)) return;
+    try {
+      await api.completeEvent(id);
+      toast.success(`Event concluded! Attendance records locked and ready for certificate issuance.`);
+      await fetchEvents();
+    } catch (err: any) {
+      toast.error(err.message || 'Could not conclude event');
     }
   };
 
@@ -102,7 +113,7 @@ export const MyEventsPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 w-full md:w-auto pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
+              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
                 <Link
                   to="/organizer/attendance"
                   className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-3 py-2 rounded-xl transition-colors flex items-center gap-1.5"
@@ -112,14 +123,33 @@ export const MyEventsPage: React.FC = () => {
                 </Link>
 
                 <Link
+                  to="/organizer/certificates"
+                  className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold px-3 py-2 rounded-xl transition-colors flex items-center gap-1.5 border border-indigo-200"
+                >
+                  <Award className="w-3.5 h-3.5" />
+                  <span>Certificates</span>
+                </Link>
+
+                {!evt.completed_at && evt.status !== 'closed' && evt.status !== 'cancelled' && (
+                  <button
+                    onClick={() => handleCompleteEvent(evt.id, evt.title)}
+                    className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-2 rounded-xl transition-colors flex items-center gap-1 border border-emerald-200"
+                    title="Conclude Event and Lock Records"
+                  >
+                    <FileCheck2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Conclude</span>
+                  </button>
+                )}
+
+                <Link
                   to={`/events/${evt.id}`}
                   className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2 rounded-xl transition-colors flex items-center gap-1"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
-                  <span>Public View</span>
+                  <span>View</span>
                 </Link>
 
-                {evt.status !== 'cancelled' && (
+                {evt.status !== 'cancelled' && evt.status !== 'closed' && (
                   <button
                     onClick={() => handleCancelEvent(evt.id)}
                     className="p-2 text-slate-400 hover:text-rose-600 transition-colors"

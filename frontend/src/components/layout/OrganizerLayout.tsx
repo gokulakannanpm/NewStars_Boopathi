@@ -11,7 +11,7 @@ import {
   Building,
   ShieldCheck
 } from 'lucide-react';
-import { Navbar } from '../common/Navbar';
+import { OrganizerNavbar } from '../common/OrganizerNavbar';
 import { Footer } from '../common/Footer';
 import { useAuth } from '../../context/AuthContext';
 
@@ -33,7 +33,7 @@ export const OrganizerLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f8fafc]">
-      <Navbar />
+      <OrganizerNavbar />
 
       <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

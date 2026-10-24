@@ -1,6 +1,7 @@
 import {
   UserProfile, College, Event, EventRegistration, TimetableEntry,
-  ConflictDetectionResult, StudentQuestion, Certificate, NotificationItem, OrganizerMetrics
+  ConflictDetectionResult, StudentQuestion, Certificate, NotificationItem, OrganizerMetrics,
+  TransportAskAIResult, TeamCheckinResolution, TeamCheckinResponse, BulkCertificateIssueResult, EventCertificateCollection
 } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -127,16 +128,19 @@ export const api = {
   },
 
   // Registration & Waitlist
-  async registerForEvent(eventId: string, notes?: string) {
+  async registerForEvent(eventId: string, options?: { notes?: string; is_team?: boolean; team_name?: string }) {
     return request<{
       success: boolean;
       registration_id: string;
       checkin_token: string;
+      is_team?: boolean;
+      team_name?: string;
+      team_qr_token?: string;
       whatsapp_group_link?: string;
       message: string;
     }>(`/api/events/${eventId}/register`, {
       method: 'POST',
-      body: JSON.stringify({ confirm_terms: true, notes }),
+      body: JSON.stringify({ confirm_terms: true, ...options }),
     });
   },
 
@@ -248,14 +252,78 @@ export const api = {
   async checkinAttendee(tokenOrId: string, manual = false, status = 'attended') {
     return request<{
       success: boolean;
-      already_checked_in: boolean;
-      student_name: string;
+      is_team?: boolean;
+      already_checked_in?: boolean;
+      student_name?: string;
       registration_id?: string;
       attended_at?: string;
+      team_id?: string;
+      team_name?: string;
+      event_id?: string;
+      members?: any[];
+      total_members?: number;
+      eligible_count?: number;
       message: string;
     }>('/api/attendance/checkin', {
       method: 'POST',
       body: JSON.stringify({ token_or_registration_id: tokenOrId, manual, status }),
+    });
+  },
+
+  async teamCheckin(eventId: string, registrationIds: string[]) {
+    return request<TeamCheckinResponse>('/api/attendance/team-checkin', {
+      method: 'POST',
+      body: JSON.stringify({ event_id: eventId, registration_ids: registrationIds }),
+    });
+  },
+
+  async completeEvent(eventId: string) {
+    return request<{ success: boolean; message: string; event: Event }>(`/api/events/${eventId}/complete`, {
+      method: 'POST',
+    });
+  },
+
+  // Uploads & AI Assistants
+  async uploadPoster(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = localStorage.getItem('evehub_token') || 'usr-student-1';
+    const res = await fetch(`${API_BASE}/api/upload/poster`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Poster upload failed');
+    }
+    return res.json() as Promise<{ success: boolean; url: string; filename: string; size: number }>;
+  },
+
+  async uploadTransportPdf(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = localStorage.getItem('evehub_token') || 'usr-student-1';
+    const res = await fetch(`${API_BASE}/api/upload/transport-pdf`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Transport PDF upload failed');
+    }
+    return res.json() as Promise<{ success: boolean; url: string; filename: string; size: number }>;
+  },
+
+  async askAiTransport(eventId: string, query: string) {
+    return request<TransportAskAIResult>('/api/transport/ask-ai', {
+      method: 'POST',
+      body: JSON.stringify({ event_id: eventId, query }),
     });
   },
 
@@ -275,6 +343,23 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  },
+
+  async bulkIssueCertificates(data: {
+    event_id: string;
+    certificate_type?: string;
+    signatory_name?: string;
+    signatory_title?: string;
+    template_id?: string;
+  }) {
+    return request<BulkCertificateIssueResult>('/api/certificates/bulk-issue', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async getCertificateCollection(eventId: string) {
+    return request<EventCertificateCollection>(`/api/certificates/collection/${eventId}`);
   },
 
   async verifyCertificate(certId: string) {
@@ -310,3 +395,4 @@ export const api = {
     return request<OrganizerMetrics>('/api/organizer/metrics');
   },
 };
+

@@ -99,8 +99,10 @@ class Event(BaseModel):
     is_external: bool = False
     has_transport: bool = False
     transport_details: Optional[Dict[str, Any]] = None
+    transport_pdf_url: Optional[str] = None
     whatsapp_group_link: Optional[str] = None
     agenda: Optional[List[Dict[str, str]]] = None
+    completed_at: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
@@ -125,6 +127,7 @@ class EventCreate(BaseModel):
     canonical_registration_link: Optional[str] = None
     has_transport: bool = False
     transport_details: Optional[Dict[str, Any]] = None
+    transport_pdf_url: Optional[str] = None
     whatsapp_group_link: Optional[str] = None
     agenda: Optional[List[Dict[str, str]]] = None
     status: EventStatus = "open"
@@ -147,8 +150,10 @@ class EventUpdate(BaseModel):
     status: Optional[EventStatus] = None
     has_transport: Optional[bool] = None
     transport_details: Optional[Dict[str, Any]] = None
+    transport_pdf_url: Optional[str] = None
     whatsapp_group_link: Optional[str] = None
     agenda: Optional[List[Dict[str, str]]] = None
+    completed_at: Optional[str] = None
 
 # ==================== Registration & Attendance ====================
 RegistrationStatus = Literal["confirmed", "waitlisted", "cancelled"]
@@ -169,17 +174,40 @@ class EventRegistration(BaseModel):
     qr_checkin_token: Optional[str] = None
     payment_status: str = "free"
     payment_amount: int = 0
+    is_team: bool = False
+    team_id: Optional[str] = None
+    team_name: Optional[str] = None
+    team_qr_token: Optional[str] = None
     created_at: str
     updated_at: Optional[str] = None
 
 class RegisterEventRequest(BaseModel):
     confirm_terms: bool = True
     notes: Optional[str] = None
+    is_team: bool = False
+    team_name: Optional[str] = None
+    team_members: Optional[List[Any]] = None
 
 class AttendanceCheckinRequest(BaseModel):
     token_or_registration_id: str
     manual: bool = False
     status: AttendanceStatus = "attended"
+
+class TeamCheckinRequest(BaseModel):
+    event_id: str
+    team_id: Optional[str] = None
+    registration_ids: List[str]
+
+class TransportAskAIRequest(BaseModel):
+    event_id: str
+    query: str
+
+class BulkCertificateIssueRequest(BaseModel):
+    event_id: str
+    certificate_type: Literal["Participation", "Excellence", "Winner", "Runner-up", "Organizer"] = "Participation"
+    signatory_name: str = "Dr. Arun Kumar"
+    signatory_title: str = "Convener & Head of Department"
+    template_id: Optional[str] = "standard"
 
 # ==================== Timetable & Conflict Detection ====================
 class TimetableEntry(BaseModel):

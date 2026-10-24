@@ -1,12 +1,18 @@
 import React from 'react';
-import { Bus, Clock, Phone, MapPin, AlertCircle } from 'lucide-react';
+import { Bus, Clock, Phone, MapPin, AlertCircle, Sparkles, FileText, ExternalLink } from 'lucide-react';
 import { TransportDetails } from '../../api/types';
 
 interface TransportInfoCardProps {
   transport?: TransportDetails;
+  transportPdfUrl?: string;
+  onOpenAskAi?: () => void;
 }
 
-export const TransportInfoCard: React.FC<TransportInfoCardProps> = ({ transport }) => {
+export const TransportInfoCard: React.FC<TransportInfoCardProps> = ({
+  transport,
+  transportPdfUrl,
+  onOpenAskAi
+}) => {
   if (!transport || !transport.available) {
     return (
       <div className="bg-slate-50 rounded-2xl border border-slate-200 p-5 text-xs text-slate-500 flex items-center gap-3">
@@ -34,6 +40,18 @@ export const TransportInfoCard: React.FC<TransportInfoCardProps> = ({ transport 
       </div>
 
       <div className="p-5 space-y-4 text-xs">
+        {/* Ask AI Route Assistant Button */}
+        {onOpenAskAi && (
+          <button
+            type="button"
+            onClick={onOpenAskAi}
+            className="w-full bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-2.5 px-4 rounded-xl shadow-xs flex items-center justify-center gap-2 text-xs transition-all hover:shadow-indigo-200"
+          >
+            <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+            <span>Ask AI Transport Route Assistant</span>
+          </button>
+        )}
+
         {/* Pickup Points */}
         {transport.pickup_points && transport.pickup_points.length > 0 && (
           <div>
@@ -78,6 +96,23 @@ export const TransportInfoCard: React.FC<TransportInfoCardProps> = ({ transport 
           </div>
         )}
 
+        {/* PDF Link if present */}
+        {transportPdfUrl && (
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+            <span className="text-slate-500">Official Schedule Document:</span>
+            <a
+              href={transportPdfUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 hover:underline"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>View Route PDF</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+        )}
+
         {/* Special Instructions Note */}
         {transport.notes && (
           <div className="bg-amber-50 rounded-xl p-3 text-[11px] text-amber-900 border border-amber-200 flex items-start gap-2">
@@ -89,3 +124,4 @@ export const TransportInfoCard: React.FC<TransportInfoCardProps> = ({ transport 
     </div>
   );
 };
+

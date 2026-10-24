@@ -3,6 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 
+// Security Route Guard
+import { ProtectedRoute } from './components/common/ProtectedRoute';
+
 // Layouts
 import { PublicLayout } from './components/layout/PublicLayout';
 import { StudentLayout } from './components/layout/StudentLayout';
@@ -16,6 +19,7 @@ import { SignInPage } from './pages/public/SignInPage';
 import { SignUpPage } from './pages/public/SignUpPage';
 import { CollegesPage } from './pages/public/CollegesPage';
 import { VerifyCertificatePage } from './pages/public/VerifyCertificatePage';
+import { EventCertificateCollectionPage } from './pages/public/EventCertificateCollectionPage';
 
 // Events
 import { EventsDiscoveryPage } from './pages/events/EventsDiscoveryPage';
@@ -60,11 +64,19 @@ export function App() {
               <Route path="/signup" element={<SignUpPage />} />
               <Route path="/verify-certificate/:certId" element={<VerifyCertificatePage />} />
               <Route path="/verify-certificate" element={<VerifyCertificatePage />} />
+              <Route path="/certificates/collection/:eventId" element={<EventCertificateCollectionPage />} />
               <Route path="/404" element={<NotFoundPage />} />
             </Route>
 
-            {/* Student App Routes */}
-            <Route path="/student" element={<StudentLayout />}>
+            {/* Student App Routes (Protected for Students and Admins) */}
+            <Route
+              path="/student"
+              element={
+                <ProtectedRoute allowedRoles={['student', 'admin']}>
+                  <StudentLayout />
+                </ProtectedRoute>
+              }
+            >
               <Route index element={<Navigate to="/student/dashboard" replace />} />
               <Route path="dashboard" element={<StudentDashboard />} />
               <Route path="registrations" element={<MyRegistrationsPage />} />
@@ -75,8 +87,15 @@ export function App() {
               <Route path="profile" element={<StudentProfilePage />} />
             </Route>
 
-            {/* Organizer App Routes */}
-            <Route path="/organizer" element={<OrganizerLayout />}>
+            {/* Organizer App Routes (Protected for Organizers and Admins) */}
+            <Route
+              path="/organizer"
+              element={
+                <ProtectedRoute allowedRoles={['organizer', 'admin']}>
+                  <OrganizerLayout />
+                </ProtectedRoute>
+              }
+            >
               <Route index element={<Navigate to="/organizer/dashboard" replace />} />
               <Route path="dashboard" element={<OrganizerDashboard />} />
               <Route path="events" element={<MyEventsPage />} />

@@ -2,26 +2,50 @@
 EveHub FastAPI Application.
 Complete implementation of public, student, and organizer APIs.
 """
-from fastapi import FastAPI, HTTPException, Header, Depends, Query, status
-from fastapi.middleware.cors import CORSMiddleware
-from datetime import datetime, timezone, timedelta
+import os
+import re
+import shutil
 import uuid
 import json
 import csv
 import io
 from typing import Optional, List, Dict, Any
+from datetime import datetime, timezone, timedelta
+from contextlib import asynccontextmanager
+
+import bcrypt
+import jwt
+from fastapi import FastAPI, HTTPException, Header, Depends, Query, status, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pypdf import PdfReader
+
+try:
+    import groq
+except ImportError:
+    groq = None
 
 from models import (
     UserProfile, RegisterRequest, LoginRequest, AuthResponse, ProfileUpdateRequest,
     Event, EventCreate, EventUpdate, EventRegistration, RegisterEventRequest,
-    AttendanceCheckinRequest, TimetableEntry, TimetableCreate, ConflictDetectionResult,
+    AttendanceCheckinRequest, TeamCheckinRequest, TransportAskAIRequest, BulkCertificateIssueRequest,
+    TimetableEntry, TimetableCreate, ConflictDetectionResult,
     StudentQuestion, QuestionCreate, QuestionAnswer, WaitlistEntry,
     Certificate, CertificateIssueRequest, Notification, College
 )
 from database import init_db, query_db, execute_db
 from conflict_engine import check_event_conflict, calculate_haversine_distance_km, parse_iso_datetime
 
-from contextlib import asynccontextmanager
+# Cryptographic token secret
+JWT_SECRET = os.environ.get("EVEHUB_JWT_SECRET", "evehub-secure-production-jwt-token-secret-key-2026")
+JWT_ALGORITHM = "HS256"
+
+# File Upload directories
+UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
+POSTER_DIR = os.path.join(UPLOAD_DIR, "posters")
+TRANSPORT_DIR = os.path.join(UPLOAD_DIR, "transport_docs")
+os.makedirs(POSTER_DIR, exist_ok=True)
+os.makedirs(TRANSPORT_DIR, exist_ok=True)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -43,28 +67,72 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount local uploads for posters and transport documents
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+
 # ==================== Auth Helpers ====================
+def hash_password(password: str) -> str:
+    """Hashes a password using bcrypt."""
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
+
+def verify_password(plain_password: str, hashed_or_plain: str) -> bool:
+    """Verifies a password against bcrypt hash, with legacy fallback."""
+    if not hashed_or_plain:
+        return False
+    try:
+        if hashed_or_plain.startswith("$2a$") or hashed_or_plain.startswith("$2b$") or hashed_or_plain.startswith("$2y$"):
+            return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_or_plain.encode("utf-8"))
+    except Exception:
+        pass
+    # Legacy migration fallback for demo database entries
+    return plain_password == hashed_or_plain or plain_password == "evehub123"
+
+def create_access_token(user_id: str, role: str) -> str:
+    """Generates a signed JWT access token."""
+    expire = datetime.now(timezone.utc) + timedelta(days=7)
+    payload = {
+        "sub": user_id,
+        "role": role,
+        "exp": expire,
+        "iat": datetime.now(timezone.utc)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
 def get_current_user(authorization: Optional[str] = Header(None)) -> UserProfile:
-    """Extract user from bearer token or fallback demo student."""
+    """Extract and cryptographically verify user from bearer JWT token or legacy demo identifier."""
     if not authorization:
-        # Default to demo student for easy browsing
         user = query_db("SELECT * FROM profiles WHERE id = 'usr-student-1'", one=True)
         if user:
             return UserProfile(**user)
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     token = authorization.replace("Bearer ", "").strip()
-    # If token is a user_id or demo token
-    user = query_db("SELECT * FROM profiles WHERE id = ? OR email = ?", (token, token), one=True)
-    if not user:
-        # Check standard demo tokens
+
+    # If token appears to be a JWT (contains two dots)
+    if token.count(".") == 2:
+        try:
+            payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+            user_id = payload.get("sub")
+        except jwt.PyJWTError:
+            raise HTTPException(status_code=401, detail="Invalid or expired cryptographically signed token.")
+    elif token in ("usr-student-1", "usr-organizer-1", "usr-organizer-2", "demo-organizer"):
         if token == "demo-organizer":
             user = query_db("SELECT * FROM profiles WHERE role = 'organizer' LIMIT 1", one=True)
+            if user:
+                return UserProfile(**user)
+        user_id = token
+    else:
+        # Check if direct valid user id or email in profiles
+        existing = query_db("SELECT id FROM profiles WHERE id = ?", (token,), one=True)
+        if existing:
+            user_id = token
         else:
-            user = query_db("SELECT * FROM profiles WHERE id = 'usr-student-1'", one=True)
+            raise HTTPException(status_code=401, detail="Invalid session or token.")
 
+    user = query_db("SELECT * FROM profiles WHERE id = ? OR email = ?", (user_id, user_id), one=True)
     if not user:
-        raise HTTPException(status_code=401, detail="Invalid session or token")
+        raise HTTPException(status_code=401, detail="Invalid session or user not found.")
     return UserProfile(**user)
 
 # ==================== Health & Meta ====================
@@ -74,7 +142,8 @@ def health_check():
         "status": "healthy",
         "app": "EveHub API",
         "time": datetime.now(timezone.utc).isoformat(),
-        "database": "SQLite / Supabase Bridge Ready"
+        "database": "SQLite / Supabase Bridge Ready",
+        "storage": "Mounted /uploads (Posters & Transport PDFs)"
     }
 
 # ==================== Authentication Endpoints ====================
@@ -86,12 +155,13 @@ def register(req: RegisterRequest):
 
     user_id = f"usr-{uuid.uuid4().hex[:10]}"
     now = datetime.now(timezone.utc).isoformat()
+    hashed_pwd = hash_password(req.password)
     
     execute_db("""
     INSERT INTO profiles (id, email, password_hash, display_name, role, college_id, college_name, department, year, phone, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
-        user_id, req.email.lower(), req.password, req.display_name, req.role,
+        user_id, req.email.lower(), hashed_pwd, req.display_name, req.role,
         req.college_id, req.college_name, req.department, req.year, req.phone, now, now
     ))
 
@@ -105,18 +175,26 @@ def register(req: RegisterRequest):
     ))
 
     user_record = query_db("SELECT * FROM profiles WHERE id = ?", (user_id,), one=True)
-    return AuthResponse(user=UserProfile(**user_record), token=user_id)
+    token = create_access_token(user_id, req.role)
+    return AuthResponse(user=UserProfile(**user_record), token=token)
 
 @app.post("/api/auth/login", response_model=AuthResponse)
 def login(req: LoginRequest):
     user = query_db("SELECT * FROM profiles WHERE email = ?", (req.email.lower(),), one=True)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid email or password.")
-    # For demo environment, match password
-    if user["password_hash"] != req.password and req.password != "evehub123":
+
+    if not verify_password(req.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
 
-    return AuthResponse(user=UserProfile(**user), token=user["id"])
+    # Seamlessly migrate legacy plaintext passwords to bcrypt
+    if not (user["password_hash"].startswith("$2a$") or user["password_hash"].startswith("$2b$")):
+        new_hash = hash_password(req.password)
+        execute_db("UPDATE profiles SET password_hash = ? WHERE id = ?", (new_hash, user["id"]))
+
+    token = create_access_token(user["id"], user["role"])
+    return AuthResponse(user=UserProfile(**user), token=token)
+
 
 @app.get("/api/auth/me", response_model=UserProfile)
 def get_me(current_user: UserProfile = Depends(get_current_user)):
@@ -155,7 +233,213 @@ def update_profile(req: ProfileUpdateRequest, current_user: UserProfile = Depend
         execute_db(sql, tuple(params))
 
     updated = query_db("SELECT * FROM profiles WHERE id = ?", (current_user.id,), one=True)
-    return UserProfile(**updated)
+# ==================== Media & Document Upload Endpoints ====================
+@app.post("/api/upload/poster")
+async def upload_poster(
+    file: UploadFile = File(...),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    if current_user.role not in ("organizer", "admin"):
+        raise HTTPException(status_code=403, detail="Only organizers can upload event posters.")
+
+    allowed_types = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if file.content_type not in allowed_types and ext not in [".jpg", ".jpeg", ".png", ".webp", ".gif"]:
+        raise HTTPException(status_code=400, detail="Invalid image type. Supported formats: JPG, PNG, WebP, GIF.")
+
+    content = await file.read()
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Image file exceeds maximum allowed size of 5MB.")
+
+    clean_name = re.sub(r'[^a-zA-Z0-9_\.-]', '_', os.path.basename(file.filename or "poster.jpg"))
+    filename = f"{uuid.uuid4().hex[:10]}_{clean_name}"
+    filepath = os.path.join(POSTER_DIR, filename)
+
+    with open(filepath, "wb") as f:
+        f.write(content)
+
+    return {
+        "success": True,
+        "url": f"/uploads/posters/{filename}",
+        "filename": filename,
+        "size": len(content)
+    }
+
+@app.post("/api/upload/transport-pdf")
+async def upload_transport_pdf(
+    file: UploadFile = File(...),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    if current_user.role not in ("organizer", "admin"):
+        raise HTTPException(status_code=403, detail="Only organizers can upload transport schedules.")
+
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if file.content_type not in ["application/pdf"] and ext != ".pdf":
+        raise HTTPException(status_code=400, detail="Invalid file type. Only PDF documents are supported.")
+
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="PDF exceeds maximum allowed size of 10MB.")
+
+    clean_name = re.sub(r'[^a-zA-Z0-9_\.-]', '_', os.path.basename(file.filename or "transport.pdf"))
+    filename = f"{uuid.uuid4().hex[:10]}_{clean_name}"
+    filepath = os.path.join(TRANSPORT_DIR, filename)
+
+    with open(filepath, "wb") as f:
+        f.write(content)
+
+    return {
+        "success": True,
+        "url": f"/uploads/transport_docs/{filename}",
+        "filename": filename,
+        "size": len(content)
+    }
+
+# ==================== Document-Grounded Transport Assistant ====================
+@app.post("/api/transport/ask-ai")
+def ask_ai_transport(req: TransportAskAIRequest):
+    event = query_db("SELECT * FROM events WHERE id = ?", (req.event_id,), one=True)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    pdf_url = event.get("transport_pdf_url")
+    transport_details_raw = event.get("transport_details")
+    transport_details = {}
+    if transport_details_raw:
+        try:
+            transport_details = json.loads(transport_details_raw) if isinstance(transport_details_raw, str) else transport_details_raw
+        except Exception:
+            pass
+
+    # Extract text per page from PDF if present
+    pages_text = []
+    if pdf_url:
+        local_filename = os.path.basename(pdf_url)
+        local_path = os.path.join(TRANSPORT_DIR, local_filename)
+        if os.path.exists(local_path):
+            try:
+                reader = PdfReader(local_path)
+                for idx, page in enumerate(reader.pages, start=1):
+                    txt = page.extract_text() or ""
+                    if txt.strip():
+                        pages_text.append({"page": idx, "text": txt.strip()})
+            except Exception:
+                pass
+
+    if not pages_text and not transport_details:
+        return {
+            "answer": "No official transport schedule or PDF document has been uploaded for this event yet. Please contact the event organizer or department coordinator for bus route details.",
+            "source_pages": [],
+            "citations": [],
+            "has_document": False
+        }
+
+    query_str = req.query.strip().lower()
+    STOP_WORDS = {"the", "and", "for", "from", "are", "bus", "buses", "route", "routes", "what", "where", "how", "time", "reach", "can", "any", "stop", "stops", "stand", "station", "does", "there"}
+    query_words = [w for w in re.findall(r'\b\w{3,}\b', query_str) if w not in STOP_WORDS]
+
+    matched_pages = []
+    citations = []
+
+    # Match in PDF
+    for p in pages_text:
+        ptxt = p["text"].lower()
+        if any(w in ptxt for w in query_words):
+            matched_pages.append(p["page"])
+            lines = [ln.strip() for ln in p["text"].split("\n") if ln.strip()]
+            for ln in lines:
+                if any(w in ln.lower() for w in query_words):
+                    citations.append(f"[Page {p['page']}]: {ln}")
+
+    # Also match in structured transport details
+    pickup_points = transport_details.get("pickup_points", [])
+    matched_pickup_points = []
+    for pt in pickup_points:
+        if isinstance(pt, dict):
+            pt_name = pt.get("point", "")
+            pt_time = pt.get("time", "")
+            pt_bus = pt.get("bus_no", "")
+            citation_str = f"[Event Transport Schedule]: Pickup at {pt_name} at {pt_time} (Bus #{pt_bus})"
+        else:
+            pt_name = str(pt)
+            pt_time = ""
+            pt_bus = ""
+            citation_str = f"[Event Transport Schedule]: Pickup at {pt_name}"
+
+        if query_words and any(w in pt_name.lower() or (pt_bus and w in str(pt_bus).lower()) for w in query_words):
+            matched_pickup_points.append(pt)
+            citations.append(citation_str)
+
+    # If Groq API key is present, generate AI answer grounded strictly in verified text
+    groq_api_key = os.environ.get("GROQ_API_KEY")
+    if groq_api_key and groq:
+        try:
+            client = groq.Groq(api_key=groq_api_key)
+            context_blocks = []
+            for p in pages_text:
+                context_blocks.append(f"--- Document Page {p['page']} ---\n{p['text']}")
+            if transport_details:
+                context_blocks.append(f"--- Form Details ---\n{json.dumps(transport_details, indent=2)}")
+
+            full_context = "\n\n".join(context_blocks)[:8000]
+
+            prompt = f"""You are the official EveHub College Transport Assistant for the event '{event['title']}' at '{event['college_name']}'.
+A student is asking: "{req.query}".
+
+STRICT GROUNDING RULES:
+1. Answer using ONLY facts explicitly stated in the provided official documents below.
+2. If the document provides a route, bus number, pickup location, or departure time matching the student's query, state it clearly and cite the source page number (e.g., "[Page 1]").
+3. NEVER guess, estimate, or extrapolate any bus stop, route, or schedule not in the document.
+4. If the student asks for a route/location that is NOT in the document, you MUST explicitly state that the route is not listed in the uploaded college transport document, and suggest they check the nearest verified stop or contact the organizer.
+
+OFFICIAL TRANSPORT DOCUMENTS:
+{full_context}
+"""
+            completion = client.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,
+                max_tokens=400
+            )
+            ai_text = completion.choices[0].message.content.strip()
+            return {
+                "answer": ai_text,
+                "source_pages": list(set(matched_pages)),
+                "citations": citations[:5],
+                "has_document": True
+            }
+        except Exception:
+            pass
+
+    # Deterministic grounded fallback when GROQ_API_KEY is not set or API is unreachable
+    if matched_pages or matched_pickup_points:
+        answer_parts = [f"Found verified transport information for '{req.query}':"]
+        for pt in matched_pickup_points:
+            if isinstance(pt, dict):
+                answer_parts.append(f"• **{pt.get('point')}**: Departure at **{pt.get('time')}** (Bus #{pt.get('bus_no', 'N/A')})")
+            else:
+                answer_parts.append(f"• **{pt}**")
+        if matched_pages:
+            answer_parts.append(f"• Document reference: Relevant route schedule found on **Page {', '.join(str(p) for p in matched_pages)}** of the college transport PDF.")
+            if citations:
+                answer_parts.append(f"• Key passage: *\"{citations[0]}\"*")
+        if transport_details.get("return_departure_time"):
+            answer_parts.append(f"\nReturn Departure: {transport_details.get('return_departure_time')}.")
+        return {
+            "answer": "\n".join(answer_parts),
+            "source_pages": list(set(matched_pages)),
+            "citations": citations[:5],
+            "has_document": True
+        }
+    else:
+        all_stops = [pt.get("point") if isinstance(pt, dict) else str(pt) for pt in pickup_points if pt]
+        stops_msg = f" Available designated pickup points are: {', '.join(all_stops)}." if all_stops else ""
+        return {
+            "answer": f"The uploaded college transport document does not contain route or pickup information for '{req.query}'.{stops_msg} Please refer to the complete PDF schedule or contact the event organizer at {transport_details.get('contact_phone', event.get('organizer_name'))} for special assistance.",
+            "source_pages": [],
+            "citations": [],
+            "has_document": True
+        }
 
 # ==================== Colleges Endpoints ====================
 @app.get("/api/colleges", response_model=List[College])
@@ -332,8 +616,8 @@ def create_event(req: EventCreate, current_user: UserProfile = Depends(get_curre
         category, poster_url, start_date, end_date, registration_deadline, venue,
         latitude, longitude, format, fee, eligibility, capacity, registered_count,
         status, canonical_registration_link, is_external, has_transport, transport_details,
-        whatsapp_group_link, agenda, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        transport_pdf_url, whatsapp_group_link, agenda, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         event_id, current_user.id, current_user.display_name, college_id, college_name,
         req.title, req.description, req.category, req.poster_url, req.start_date,
@@ -342,6 +626,7 @@ def create_event(req: EventCreate, current_user: UserProfile = Depends(get_curre
         req.canonical_registration_link, 1 if req.is_external else 0,
         1 if req.has_transport else 0,
         json.dumps(req.transport_details) if req.transport_details else None,
+        req.transport_pdf_url,
         req.whatsapp_group_link,
         json.dumps(req.agenda) if req.agenda else None,
         now, now
@@ -384,6 +669,10 @@ def update_event(event_id: str, req: EventUpdate, current_user: UserProfile = De
         updates.append("transport_details = ?")
         params.append(json.dumps(req.transport_details))
 
+    if req.transport_pdf_url is not None:
+        updates.append("transport_pdf_url = ?")
+        params.append(req.transport_pdf_url)
+
     if req.agenda is not None:
         updates.append("agenda = ?")
         params.append(json.dumps(req.agenda))
@@ -409,6 +698,27 @@ def cancel_event(event_id: str, current_user: UserProfile = Depends(get_current_
         datetime.now(timezone.utc).isoformat(), event_id
     ))
     return {"message": "Event cancelled successfully"}
+
+@app.post("/api/events/{event_id}/complete")
+def complete_event(event_id: str, current_user: UserProfile = Depends(get_current_user)):
+    event = query_db("SELECT * FROM events WHERE id = ?", (event_id,), one=True)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if current_user.role != "admin" and event["organizer_id"] != current_user.id:
+        raise HTTPException(status_code=403, detail="Unauthorized to complete this event.")
+
+    now = datetime.now(timezone.utc).isoformat()
+    execute_db(
+        "UPDATE events SET status = 'closed', completed_at = ?, updated_at = ? WHERE id = ?",
+        (now, now, event_id)
+    )
+
+    r = query_db("SELECT * FROM events WHERE id = ?", (event_id,), one=True)
+    return {
+        "success": True,
+        "message": f"Event '{event['title']}' marked as successfully completed. Certificate issuance unlocked.",
+        "event": hydrate_event(r)
+    }
 
 # ==================== Registration & Waitlist Endpoints ====================
 @app.post("/api/events/{event_id}/register")
@@ -437,11 +747,21 @@ def register_for_event(
 
     # Check registration deadline
     dl = parse_iso_datetime(event["registration_deadline"])
-    if dl and dl < datetime.now(timezone.utc).replace(tzinfo=None):
-        raise HTTPException(status_code=400, detail="Registration deadline has expired.")
+    if dl:
+        now_dt = datetime.now(timezone.utc)
+        if dl.tzinfo is None:
+            now_dt = now_dt.replace(tzinfo=None)
+        if dl < now_dt:
+            raise HTTPException(status_code=400, detail="Registration deadline has expired.")
 
-    # Check capacity -> if full, return 400 prompting waitlist
-    if event["registered_count"] >= event["capacity"]:
+    # Atomic capacity reservation: increment registered_count ONLY IF registered_count < capacity
+    capacity_reserved = execute_db("""
+    UPDATE events
+    SET registered_count = registered_count + 1
+    WHERE id = ? AND registered_count < capacity
+    """, (event_id,))
+
+    if capacity_reserved == 0:
         raise HTTPException(
             status_code=400,
             detail="Event capacity reached. You may join the FIFO waitlist to be offered a seat if one frees up."
@@ -451,34 +771,64 @@ def register_for_event(
     checkin_token = f"EVH-CHK-{uuid.uuid4().hex[:6].upper()}"
     payment_status = "free" if event["fee"] == 0 else "paid" # simulated payment for demo
 
+    is_team_int = 1 if req.is_team else 0
+    team_id = f"team-{uuid.uuid4().hex[:8]}" if req.is_team else None
+    team_name = req.team_name.strip() if (req.is_team and req.team_name) else (f"{current_user.display_name}'s Team" if req.is_team else None)
+    team_qr_token = f"EVH-TEAM-{uuid.uuid4().hex[:6].upper()}" if req.is_team else None
+
     if existing and existing["registration_status"] == "cancelled":
         reg_id = existing["id"]
         execute_db("""
         UPDATE event_registrations
         SET registration_status = 'confirmed', attendance_status = 'registered',
             attended_at = NULL, qr_checkin_token = ?, payment_status = ?,
-            payment_amount = ?, updated_at = ?
+            payment_amount = ?, is_team = ?, team_id = ?, team_name = ?, team_qr_token = ?, updated_at = ?
         WHERE id = ?
-        """, (checkin_token, payment_status, event["fee"], now, reg_id))
+        """, (checkin_token, payment_status, event["fee"], is_team_int, team_id, team_name, team_qr_token, now, reg_id))
     else:
         reg_id = f"reg-{uuid.uuid4().hex[:8]}"
         execute_db("""
         INSERT INTO event_registrations (
             id, event_id, student_id, student_name, student_email, student_college,
             student_department, student_year, registration_status, attendance_status,
-            qr_checkin_token, payment_status, payment_amount, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            qr_checkin_token, payment_status, payment_amount,
+            is_team, team_id, team_name, team_qr_token, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             reg_id, event_id, current_user.id, current_user.display_name, current_user.email,
             current_user.college_name, current_user.department, current_user.year,
-            "confirmed", "registered", checkin_token, payment_status, event["fee"], now, now
+            "confirmed", "registered", checkin_token, payment_status, event["fee"],
+            is_team_int, team_id, team_name, team_qr_token, now, now
         ))
 
-    # Increment registered count
-    execute_db(
-        "UPDATE events SET registered_count = registered_count + 1 WHERE id = ?",
-        (event_id,)
-    )
+    # Also register team members if provided
+    if is_team_int and req.team_members:
+        for tm in req.team_members:
+            if isinstance(tm, dict):
+                tm_name = tm.get("name", "Team Member")
+                tm_email = tm.get("email", f"{uuid.uuid4().hex[:6]}@student.edu")
+                tm_college = tm.get("college", current_user.college_name)
+            else:
+                tm_name = str(tm)
+                tm_email = f"{uuid.uuid4().hex[:6]}@student.edu"
+                tm_college = current_user.college_name
+
+            m_stud_id = f"usr-tm-{uuid.uuid4().hex[:8]}"
+            m_checkin = f"EVH-CHK-{uuid.uuid4().hex[:6].upper()}"
+            execute_db("""
+            INSERT INTO event_registrations (
+                id, event_id, student_id, student_name, student_email, student_college,
+                student_department, student_year, registration_status, attendance_status,
+                qr_checkin_token, payment_status, payment_amount,
+                is_team, team_id, team_name, team_qr_token, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                f"reg-{uuid.uuid4().hex[:8]}", event_id, m_stud_id, tm_name, tm_email,
+                tm_college, current_user.department, current_user.year,
+                "confirmed", "registered", m_checkin, payment_status, 0,
+                1, team_id, team_name, team_qr_token, now, now
+            ))
+            execute_db("UPDATE events SET registered_count = registered_count + 1 WHERE id = ?", (event_id,))
 
     # In-app notification
     execute_db("""
@@ -495,8 +845,12 @@ def register_for_event(
         "success": True,
         "registration_id": reg_id,
         "checkin_token": checkin_token,
+        "is_team": bool(is_team_int),
+        "team_name": team_name,
+        "team_qr_token": team_qr_token,
+        "event_title": event["title"],
         "whatsapp_group_link": event["whatsapp_group_link"],
-        "message": "Registration successful!"
+        "message": f"Successfully registered for {event['title']}!"
     }
 
 @app.post("/api/events/{event_id}/waitlist")
@@ -941,6 +1295,40 @@ def checkin_attendee(req: AttendanceCheckinRequest, current_user: UserProfile = 
         )
 
     token = req.token_or_registration_id.strip()
+
+    # Check if this is a Team QR Token
+    team_regs = query_db(
+        "SELECT * FROM event_registrations WHERE team_qr_token = ? OR team_id = ?",
+        (token, token)
+    )
+    if team_regs:
+        team_name = team_regs[0]["team_name"] or "Team"
+        event_id = team_regs[0]["event_id"]
+        members = []
+        for r in team_regs:
+            members.append({
+                "registration_id": r["id"],
+                "student_id": r["student_id"],
+                "student_name": r["student_name"],
+                "student_email": r["student_email"],
+                "student_college": r["student_college"],
+                "attendance_status": r["attendance_status"],
+                "eligible": r["attendance_status"] != "attended",
+                "attended_at": r["attended_at"]
+            })
+        return {
+            "success": True,
+            "is_team": True,
+            "team_id": team_regs[0]["team_id"],
+            "team_name": team_name,
+            "event_id": event_id,
+            "members": members,
+            "total_members": len(members),
+            "eligible_count": len([m for m in members if m["eligible"]]),
+            "message": f"Resolved team '{team_name}' with {len(members)} member(s)."
+        }
+
+    # Individual QR pass or registration ID
     reg = query_db(
         "SELECT * FROM event_registrations WHERE qr_checkin_token = ? OR id = ?",
         (token, token), one=True
@@ -951,18 +1339,29 @@ def checkin_attendee(req: AttendanceCheckinRequest, current_user: UserProfile = 
     if reg["attendance_status"] == "attended":
         return {
             "success": True,
+            "is_team": False,
             "already_checked_in": True,
             "student_name": reg["student_name"],
             "attended_at": reg["attended_at"],
-            "message": "Student was ALREADY checked in previously."
+            "message": f"{reg['student_name']} was ALREADY checked in previously."
         }
 
     now = datetime.now(timezone.utc).isoformat()
-    execute_db("""
+    updated_rows = execute_db("""
     UPDATE event_registrations
     SET attendance_status = ?, attended_at = ?, updated_at = ?
-    WHERE id = ?
+    WHERE id = ? AND attendance_status != 'attended'
     """, (req.status, now, now, reg["id"]))
+
+    if updated_rows == 0:
+        return {
+            "success": True,
+            "is_team": False,
+            "already_checked_in": True,
+            "student_name": reg["student_name"],
+            "attended_at": reg.get("attended_at") or now,
+            "message": f"{reg['student_name']} was ALREADY checked in previously."
+        }
 
     # Update student history with in-app notification
     execute_db("""
@@ -977,11 +1376,58 @@ def checkin_attendee(req: AttendanceCheckinRequest, current_user: UserProfile = 
 
     return {
         "success": True,
+        "is_team": False,
         "already_checked_in": False,
         "student_name": reg["student_name"],
         "registration_id": reg["id"],
         "attended_at": now,
         "message": f"Successfully verified and checked in {reg['student_name']}."
+    }
+
+@app.post("/api/attendance/team-checkin")
+def team_checkin(req: TeamCheckinRequest, current_user: UserProfile = Depends(get_current_user)):
+    if current_user.role not in ("organizer", "admin"):
+        raise HTTPException(status_code=403, detail="Only organizers can perform team check-ins.")
+
+    now = datetime.now(timezone.utc).isoformat()
+    checked_in = []
+    already = []
+    failed = []
+
+    for reg_id in req.registration_ids:
+        r = query_db("SELECT * FROM event_registrations WHERE id = ? AND event_id = ?", (reg_id, req.event_id), one=True)
+        if not r:
+            failed.append({"registration_id": reg_id, "reason": "Not found"})
+            continue
+        if r["attendance_status"] == "attended":
+            already.append({"registration_id": reg_id, "student_name": r["student_name"]})
+            continue
+
+        execute_db(
+            "UPDATE event_registrations SET attendance_status = 'attended', attended_at = ?, updated_at = ? WHERE id = ?",
+            (now, now, reg_id)
+        )
+        checked_in.append({"registration_id": reg_id, "student_name": r["student_name"]})
+
+        execute_db("""
+        INSERT INTO notifications (id, recipient_id, title, message, type, event_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """, (
+            f"notif-{uuid.uuid4().hex[:8]}", r["student_id"],
+            "Team Attendance Verified!",
+            f"Your team attendance has been confirmed by organizers.",
+            "registration", req.event_id
+        ))
+
+    return {
+        "success": True,
+        "checked_in_count": len(checked_in),
+        "already_attended_count": len(already),
+        "failed_count": len(failed),
+        "checked_in": checked_in,
+        "already_attended": already,
+        "failed": failed,
+        "message": f"Successfully checked in {len(checked_in)} team member(s)."
     }
 
 # ==================== Certificates Endpoints ====================
@@ -1039,13 +1485,13 @@ def issue_certificate(req: CertificateIssueRequest, current_user: UserProfile = 
     INSERT INTO certificates (
         id, certificate_id, event_id, event_title, organizer_name, college_name,
         student_id, student_name, issue_date, certificate_type, signatory_title,
-        signatory_name, verification_token, status, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        signatory_name, verification_token, template_id, status, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         f"cert-{uuid.uuid4().hex[:8]}", cert_id, event["id"], event["title"],
         event["organizer_name"], event["college_name"], student["id"],
         student["display_name"], today_date, req.certificate_type,
-        req.signatory_title, req.signatory_name, verify_token, "valid", now
+        req.signatory_title, req.signatory_name, verify_token, "standard", "valid", now
     ))
 
     # Notify student
@@ -1061,6 +1507,118 @@ def issue_certificate(req: CertificateIssueRequest, current_user: UserProfile = 
 
     r = query_db("SELECT * FROM certificates WHERE certificate_id = ?", (cert_id,), one=True)
     return Certificate(**r)
+
+@app.post("/api/certificates/bulk-issue")
+def bulk_issue_certificates(req: BulkCertificateIssueRequest, current_user: UserProfile = Depends(get_current_user)):
+    if current_user.role not in ("organizer", "admin"):
+        raise HTTPException(status_code=403, detail="Only organizers can issue certificates.")
+
+    event = query_db("SELECT * FROM events WHERE id = ?", (req.event_id,), one=True)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    # Get all verified attendees
+    attendees = query_db(
+        "SELECT * FROM event_registrations WHERE event_id = ? AND attendance_status = 'attended'",
+        (req.event_id,)
+    )
+    if not attendees:
+        return {
+            "success": True,
+            "issued_count": 0,
+            "skipped_count": 0,
+            "total_attended": 0,
+            "message": "No verified attendees found for this event."
+        }
+
+    year_str = datetime.now().year
+    today_date = datetime.now().strftime("%Y-%m-%d")
+    now = datetime.now(timezone.utc).isoformat()
+
+    issued = []
+    skipped = []
+
+    for att in attendees:
+        # Check existing valid certificate
+        existing = query_db(
+            "SELECT id, certificate_id FROM certificates WHERE event_id = ? AND student_id = ? AND status = 'valid'",
+            (req.event_id, att["student_id"]), one=True
+        )
+        if existing:
+            skipped.append({
+                "student_name": att["student_name"],
+                "certificate_id": existing["certificate_id"],
+                "reason": "Already issued"
+            })
+            continue
+
+        cert_id = f"EVH-{year_str}-{uuid.uuid4().hex[:6].upper()}"
+        verify_token = f"VTOK-{uuid.uuid4().hex[:10]}"
+
+        execute_db("""
+        INSERT INTO certificates (
+            id, certificate_id, event_id, event_title, organizer_name, college_name,
+            student_id, student_name, issue_date, certificate_type, signatory_title,
+            signatory_name, verification_token, template_id, status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            f"cert-{uuid.uuid4().hex[:8]}", cert_id, event["id"], event["title"],
+            event["organizer_name"], event["college_name"], att["student_id"],
+            att["student_name"], today_date, req.certificate_type,
+            req.signatory_title, req.signatory_name, verify_token, req.template_id or "standard",
+            "valid", now
+        ))
+
+        execute_db("""
+        INSERT INTO notifications (id, recipient_id, title, message, type, event_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """, (
+            f"notif-{uuid.uuid4().hex[:8]}", att["student_id"],
+            "Certificate of Achievement Issued!",
+            f"Your digital certificate for {event['title']} has been issued. View and download from your Achievements.",
+            "certificate", event["id"]
+        ))
+
+        issued.append({
+            "certificate_id": cert_id,
+            "student_name": att["student_name"],
+            "student_college": att["student_college"]
+        })
+
+    return {
+        "success": True,
+        "issued_count": len(issued),
+        "skipped_count": len(skipped),
+        "total_attended": len(attendees),
+        "issued": issued,
+        "skipped": skipped,
+        "message": f"Successfully issued {len(issued)} digital certificate(s) for verified attendees."
+    }
+
+@app.get("/api/certificates/collection/{event_id}")
+def get_event_certificate_collection(event_id: str):
+    """Public collection page showing verifiable certificate directory for an event."""
+    event = query_db("SELECT * FROM events WHERE id = ?", (event_id,), one=True)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    certs = query_db(
+        "SELECT certificate_id, student_name, issue_date, certificate_type, template_id, status FROM certificates WHERE event_id = ? AND status = 'valid' ORDER BY student_name ASC",
+        (event_id,)
+    )
+
+    return {
+        "event_id": event["id"],
+        "event_title": event["title"],
+        "college_name": event["college_name"],
+        "organizer_name": event["organizer_name"],
+        "start_date": event["start_date"],
+        "end_date": event["end_date"],
+        "completed_at": event.get("completed_at"),
+        "total_issued": len(certs),
+        "certificates": certs
+    }
+
 
 @app.post("/api/certificates/{certificate_id}/revoke")
 def revoke_certificate(certificate_id: str, reason: str = Query("Revoked by organizer"), current_user: UserProfile = Depends(get_current_user)):

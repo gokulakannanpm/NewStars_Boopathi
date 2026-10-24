@@ -23,6 +23,7 @@ import { CategoryBadge } from '../../components/common/CategoryBadge';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { ConflictAlert } from '../../components/event/ConflictAlert';
 import { TransportInfoCard } from '../../components/event/TransportInfoCard';
+import { TransportAskAiDrawer } from '../../components/event/TransportAskAiDrawer';
 import { RegistrationModal } from '../../components/event/RegistrationModal';
 import { WaitlistModal } from '../../components/event/WaitlistModal';
 import { useAuth } from '../../context/AuthContext';
@@ -38,9 +39,10 @@ export const EventDetailPage: React.FC = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Modals
+  // Modals & AI Assistant Drawer
   const [regModalOpen, setRegModalOpen] = useState(false);
   const [waitlistModalOpen, setWaitlistModalOpen] = useState(false);
+  const [askAiDrawerOpen, setAskAiDrawerOpen] = useState(false);
 
   // Conflict Engine
   const [conflictResult, setConflictResult] = useState<ConflictDetectionResult | null>(null);
@@ -500,7 +502,11 @@ export const EventDetailPage: React.FC = () => {
           )}
 
           {/* College Transport Card */}
-          <TransportInfoCard transport={event.transport_details} />
+          <TransportInfoCard
+            transport={event.transport_details}
+            transportPdfUrl={event.transport_pdf_url}
+            onOpenAskAi={() => setAskAiDrawerOpen(true)}
+          />
 
           {/* Capacity Snapshot Card */}
           <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3 shadow-xs text-xs">
@@ -544,6 +550,16 @@ export const EventDetailPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Transport Ask AI Side Drawer */}
+      <TransportAskAiDrawer
+        isOpen={askAiDrawerOpen}
+        onClose={() => setAskAiDrawerOpen(false)}
+        eventId={event.id}
+        eventTitle={event.title}
+        collegeName={event.college_name}
+        transportPdfUrl={event.transport_pdf_url}
+      />
+
       {/* Registration & Waitlist Modals */}
       <RegistrationModal
         isOpen={regModalOpen}
@@ -565,3 +581,4 @@ export const EventDetailPage: React.FC = () => {
     </div>
   );
 };
+
